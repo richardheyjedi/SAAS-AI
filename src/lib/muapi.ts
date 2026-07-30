@@ -12,7 +12,12 @@ export function muApiConfigFromEnv(): MuApiConfig {
   if (!apiKey) throw new Error('MUAPI_API_KEY ausente');
   const baseUrl = process.env.MUAPI_BASE_URL ?? 'https://api.muapi.ai';
   const appBase = process.env.APP_BASE_URL ?? 'http://localhost:3000';
-  return { apiKey, baseUrl, webhookUrl: `${appBase}/api/webhooks/muapi` };
+  const secret = process.env.MUAPI_WEBHOOK_SECRET;
+  return {
+    apiKey,
+    baseUrl,
+    webhookUrl: `${appBase}/api/webhooks/muapi${secret ? `?secret=${secret}` : ''}`,
+  };
 }
 
 const SubmitResponseSchema = z.object({ request_id: z.string().min(1) });
