@@ -34,10 +34,13 @@ export async function POST(req: Request) {
     count: videoCount, durationSeconds,
   });
 
-  const estimated = batchCostUsd(videoCount, durationSeconds);
+  // A quantidade real de roteiros devolvidos pelo Claude é a fonte de verdade:
+  // se vier diferente do pedido, o lote é gravado com o que existe de fato.
+  const actualCount = scripts.length;
+  const estimated = batchCostUsd(actualCount, durationSeconds);
   const { data: batch, error } = await supabase
     .from('video_batches')
-    .insert({ model_id: modelId, product_id: productId, video_count: videoCount, duration_seconds: durationSeconds, estimated_cost_usd: estimated })
+    .insert({ model_id: modelId, product_id: productId, video_count: actualCount, duration_seconds: durationSeconds, estimated_cost_usd: estimated })
     .select('id').single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
@@ -45,5 +48,5 @@ export async function POST(req: Request) {
   const { error: jobsError } = await supabase.from('video_jobs').insert(rows);
   if (jobsError) return NextResponse.json({ error: jobsError.message }, { status: 500 });
 
-  return NextResponse.json({ batchId: batch.id, estimatedCostUsd: estimated }, { status: 201 });
+  return NextResponse.json({ batchId: batch.id, videoCount: actualCount, estimatedCostUsd: estimated }, { status: 201 });
 }

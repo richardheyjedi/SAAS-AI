@@ -9,7 +9,7 @@ export const anthropicCaller: ModelCaller = async (system, user) => {
   const client = new Anthropic();
   const msg = await client.messages.create({
     model: 'claude-haiku-4-5-20251001',
-    max_tokens: 4096,
+    max_tokens: 32000,
     system,
     messages: [{ role: 'user', content: user }],
   });
