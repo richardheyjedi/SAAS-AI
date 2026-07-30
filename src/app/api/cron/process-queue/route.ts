@@ -11,6 +11,30 @@ const WEBHOOK_TIMEOUT_MS = 2 * 60 * 60 * 1000;
 const BREAKER_MIN_SAMPLE = 10;
 /** Fração de falhas do dia acima da qual o cron para de despachar. */
 const BREAKER_FAILURE_RATE = 0.3;
+/** Espelha o MAX_RETRIES de src/lib/queue.ts: falha com retry_count menor ainda volta para a fila. */
+const MAX_RETRIES = 3;
+
+type ServiceSupabase = ReturnType<typeof createServiceSupabase>;
+
+/**
+ * Fecha lotes cuja última transição terminal aconteceu no lado do cron
+ * (falha no catch do loop ou reconciliação de timeout) e portanto nunca
+ * passou pelo maybeFinishBatch do webhook.
+ */
+async function sweepFinishedBatches(supabase: ServiceSupabase) {
+  const { data: batches } = await supabase
+    .from('video_batches').select('id').eq('status', 'approved');
+  for (const batch of batches ?? []) {
+    const { data: jobs } = await supabase
+      .from('video_jobs').select('status,retry_count').eq('batch_id', batch.id);
+    if (!jobs || jobs.length === 0) continue;
+    const pending = jobs.some((j) => j.status !== 'completed' && j.status !== 'failed');
+    if (pending) continue;
+    const retryable = jobs.some((j) => j.status === 'failed' && j.retry_count < MAX_RETRIES);
+    if (retryable) continue;
+    await supabase.from('video_batches').update({ status: 'done' }).eq('id', batch.id);
+  }
+}
 
 export async function GET(req: Request) {
   if (!process.env.CRON_SECRET) {
@@ -111,6 +135,9 @@ export async function GET(req: Request) {
       continue;
     }
   }
+
+  // Nunca pode derrubar a rota: o sweep é limpeza, não parte do despacho.
+  try { await sweepFinishedBatches(supabase); } catch { /* ignora */ }
 
   if (paused) {
     return NextResponse.json({ dispatched: 0, paused: true, reason: 'Taxa de falha acima de 30% hoje' });
