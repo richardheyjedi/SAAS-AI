@@ -14,8 +14,11 @@ export async function POST(req: Request) {
   const supabase = createServiceSupabase();
 
   const { data: imageJob } = await supabase
-    .from('image_jobs').select('id,model_id').eq('muapi_request_id', event.requestId).maybeSingle();
+    .from('image_jobs').select('id,model_id,status').eq('muapi_request_id', event.requestId).maybeSingle();
   if (imageJob) {
+    if (imageJob.status === 'completed' || imageJob.status === 'failed') {
+      return NextResponse.json({ ok: true });
+    }
     await supabase.from('image_jobs').update({
       status: event.status, image_url: event.outputUrl ?? null, error: event.error ?? null,
     }).eq('id', imageJob.id);
@@ -37,6 +40,9 @@ export async function POST(req: Request) {
   const { data: videoJob } = await supabase
     .from('video_jobs').select('id,status').eq('muapi_request_id', event.requestId).maybeSingle();
   if (!videoJob) return NextResponse.json({ ok: true });
+  if (videoJob.status === 'completed' || videoJob.status === 'failed') {
+    return NextResponse.json({ ok: true });
+  }
 
   if (event.status === 'failed') {
     await supabase.from('video_jobs').update({ status: 'failed', error: event.error ?? 'Falha na MuAPI' }).eq('id', videoJob.id);
