@@ -84,9 +84,15 @@ export async function POST(req: Request) {
         status: 'ready', composed_image_url: event.outputUrl, muapi_request_id: null,
       }).eq('id', videoJob.id);
     }
+  } else if (!event.outputUrl) {
+    // 'completed' sem output deixaria o job como "Pronto" sem vídeo para baixar.
+    await supabase.from('video_jobs').update({
+      status: 'failed', error: 'MuAPI retornou sem output',
+    }).eq('id', videoJob.id);
+    await maybeFinishBatch(supabase, videoJob.batch_id);
   } else {
     await supabase.from('video_jobs').update({
-      status: 'completed', video_url: event.outputUrl ?? null, completed_at: new Date().toISOString(),
+      status: 'completed', video_url: event.outputUrl, completed_at: new Date().toISOString(),
     }).eq('id', videoJob.id);
     await maybeFinishBatch(supabase, videoJob.batch_id);
   }
