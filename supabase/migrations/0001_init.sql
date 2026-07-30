@@ -54,6 +54,7 @@ create table video_jobs (
   error text,
   retry_count int not null default 0,
   created_at timestamptz not null default now(),
+  dispatched_at timestamptz,
   completed_at timestamptz
 );
 

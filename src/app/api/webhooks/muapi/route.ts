@@ -2,6 +2,26 @@ import { NextResponse } from 'next/server';
 import { parseWebhook } from '@/lib/muapi';
 import { createServiceSupabase } from '@/lib/supabase/server';
 
+type ServiceSupabase = ReturnType<typeof createServiceSupabase>;
+
+const MAX_RETRIES = 3;
+
+/**
+ * Fecha o lote quando não sobra nenhum job em andamento e nenhuma falha ainda
+ * elegível a retry pelo cron. Chamado depois de todo update terminal.
+ */
+async function maybeFinishBatch(supabase: ServiceSupabase, batchId: string | null) {
+  if (!batchId) return;
+  const { data: jobs } = await supabase
+    .from('video_jobs').select('status,retry_count').eq('batch_id', batchId);
+  if (!jobs) return;
+  const pending = jobs.filter((j) => j.status !== 'completed' && j.status !== 'failed');
+  if (pending.length > 0) return;
+  const retryable = jobs.some((j) => j.status === 'failed' && j.retry_count < MAX_RETRIES);
+  if (retryable) return;
+  await supabase.from('video_batches').update({ status: 'done' }).eq('id', batchId);
+}
+
 export async function POST(req: Request) {
   const url = new URL(req.url);
   if (url.searchParams.get('secret') !== process.env.MUAPI_WEBHOOK_SECRET) {
@@ -26,19 +46,24 @@ export async function POST(req: Request) {
       const { data: model } = await supabase.from('models')
         .select('reference_image_urls').eq('id', imageJob.model_id).single();
       const urls = [...(model?.reference_image_urls ?? []), event.outputUrl];
-      const { count } = await supabase.from('image_jobs')
-        .select('id', { count: 'exact', head: true })
-        .eq('model_id', imageJob.model_id).eq('status', 'generating');
-      await supabase.from('models').update({
-        reference_image_urls: urls,
-        ...(count === 0 ? { status: 'pending_approval' } : {}),
-      }).eq('id', imageJob.model_id);
+      await supabase.from('models')
+        .update({ reference_image_urls: urls }).eq('id', imageJob.model_id);
+    }
+    // Acabaram as referências em geração: o modelo vai para aprovação com o
+    // que tiver (mesmo que alguma ref tenha falhado) — quem decide é o usuário.
+    const { count } = await supabase.from('image_jobs')
+      .select('id', { count: 'exact', head: true })
+      .eq('model_id', imageJob.model_id).eq('status', 'generating');
+    if (count === 0) {
+      await supabase.from('models')
+        .update({ status: 'pending_approval' })
+        .eq('id', imageJob.model_id).eq('status', 'generating_refs');
     }
     return NextResponse.json({ ok: true });
   }
 
   const { data: videoJob } = await supabase
-    .from('video_jobs').select('id,status').eq('muapi_request_id', event.requestId).maybeSingle();
+    .from('video_jobs').select('id,status,batch_id,retry_count').eq('muapi_request_id', event.requestId).maybeSingle();
   if (!videoJob) return NextResponse.json({ ok: true });
   if (videoJob.status === 'completed' || videoJob.status === 'failed') {
     return NextResponse.json({ ok: true });
@@ -46,14 +71,24 @@ export async function POST(req: Request) {
 
   if (event.status === 'failed') {
     await supabase.from('video_jobs').update({ status: 'failed', error: event.error ?? 'Falha na MuAPI' }).eq('id', videoJob.id);
+    await maybeFinishBatch(supabase, videoJob.batch_id);
   } else if (videoJob.status === 'composing') {
-    await supabase.from('video_jobs').update({
-      status: 'ready', composed_image_url: event.outputUrl ?? null, muapi_request_id: null,
-    }).eq('id', videoJob.id);
+    if (!event.outputUrl) {
+      // 'completed' sem output deixaria o job em 'ready' sem imagem para animar.
+      await supabase.from('video_jobs').update({
+        status: 'failed', error: 'MuAPI retornou sem output', muapi_request_id: null,
+      }).eq('id', videoJob.id);
+      await maybeFinishBatch(supabase, videoJob.batch_id);
+    } else {
+      await supabase.from('video_jobs').update({
+        status: 'ready', composed_image_url: event.outputUrl, muapi_request_id: null,
+      }).eq('id', videoJob.id);
+    }
   } else {
     await supabase.from('video_jobs').update({
       status: 'completed', video_url: event.outputUrl ?? null, completed_at: new Date().toISOString(),
     }).eq('id', videoJob.id);
+    await maybeFinishBatch(supabase, videoJob.batch_id);
   }
   return NextResponse.json({ ok: true });
 }
