@@ -51,15 +51,17 @@ export default async function DashboardPage() {
   const limits = queueLimitsFromEnv();
   let videoJobsToday: VideoJobRow[] = [];
   let videoJobsWeek: VideoJobRow[] = [];
+  let queuedJobs: VideoJobRow[] = [];
   let recentBatches: BatchRow[] = [];
 
   try {
     const supabase = await createServerSupabase();
     const since = todayStartIso();
 
-    const [todayRes, weekRes, batchesRes] = await Promise.all([
+    const [todayRes, weekRes, queueRes, batchesRes] = await Promise.all([
       supabase.from('video_jobs').select('id,status,cost_usd,created_at').gte('created_at', since),
       supabase.from('video_jobs').select('id,status,cost_usd,created_at').gte('created_at', weekAgoIso()),
+      supabase.from('video_jobs').select('id,status,cost_usd,created_at').in('status', ['queued', 'ready', 'composing']),
       supabase
         .from('video_batches')
         .select('id,video_count,estimated_cost_usd,status,created_at,models(name),products(title)')
@@ -68,15 +70,17 @@ export default async function DashboardPage() {
     ]);
     videoJobsToday = todayRes.data ?? [];
     videoJobsWeek = weekRes.data ?? [];
+    queuedJobs = queueRes.data ?? [];
     recentBatches = (batchesRes.data as unknown as BatchRow[]) ?? [];
   } catch {
     videoJobsToday = [];
     videoJobsWeek = [];
+    queuedJobs = [];
     recentBatches = [];
   }
 
   const videosToday = videoJobsToday.filter((j) => j.status === 'generating' || j.status === 'completed').length;
-  const naFila = videoJobsToday.filter((j) => j.status === 'queued' || j.status === 'ready' || j.status === 'composing').length;
+  const naFila = queuedJobs.length ?? 0;
   const gastoHoje = videoJobsToday.reduce((sum, j) => sum + (j.cost_usd ?? 0), 0);
   const failedWeek = videoJobsWeek.filter((j) => j.status === 'failed').length;
   const failureRate = videoJobsWeek.length > 0 ? Math.round((failedWeek / videoJobsWeek.length) * 100) : 0;
