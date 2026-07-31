@@ -1,0 +1,20 @@
+# Dispara a fila de vídeos a cada 5 minutos.
+# O plano Hobby da Vercel só permite cron diário, então o disparo frequente
+# vive aqui; o cron da Vercel (vercel.json) fica como varredura diária reserva.
+# Requer o secret CRON_SECRET configurado em Settings → Secrets → Actions.
+name: Processar fila de vídeos
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Chamar o cron da fila na Vercel
+        run: |
+          curl -sf -m 120 \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "https://autoreelsai.vercel.app/api/cron/process-queue"
