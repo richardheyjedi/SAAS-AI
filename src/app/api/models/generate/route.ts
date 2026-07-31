@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { RegionSchema } from '@/types';
 import { generatePersona } from '@/lib/claude';
+import { DEFAULT_IMAGE_ENGINE } from '@/lib/engines';
 import { generateImage, muApiConfigFromEnv } from '@/lib/muapi';
 import { createServerSupabase } from '@/lib/supabase/server';
 
@@ -33,6 +34,7 @@ export async function POST(req: Request) {
   const cfg = muApiConfigFromEnv();
   for (let i = 0; i < refCount; i++) {
     const { requestId } = await generateImage(cfg, {
+      engineId: DEFAULT_IMAGE_ENGINE,
       prompt: `${persona.image_prompt} — reference shot ${i + 1}, same person, slightly different pose`,
     });
     await supabase.from('image_jobs').insert({ model_id: model.id, muapi_request_id: requestId });

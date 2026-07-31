@@ -1,9 +1,5 @@
 import { z } from 'zod';
-
-// Slugs validados contra o catálogo vivo (GET https://api.muapi.ai/api/v1/models) em 2026-07-30.
-const IMAGE_T2I_PATH = '/api/v1/gpt-image-2-text-to-image';
-const IMAGE_I2I_PATH = '/api/v1/gpt-image-2-image-to-image';
-const VIDEO_MODEL_PATH = '/api/v1/seedance-2-mini-image-to-video';
+import { imageEngine, videoEngine, videoEnginePath } from './engines';
 
 // Formato vertical padrão do TikTok em todas as gerações.
 const ASPECT_RATIO = '9:16';
@@ -41,28 +37,35 @@ async function submit(cfg: MuApiConfig, path: string, payload: Record<string, un
   return { requestId: (data.request_id ?? data.id) as string };
 }
 
-export function generateImage(cfg: MuApiConfig, input: { prompt: string; imageUrls?: string[] }) {
+export function generateImage(
+  cfg: MuApiConfig,
+  input: { engineId: string; prompt: string; imageUrls?: string[] },
+) {
+  const engine = imageEngine(input.engineId);
   if (input.imageUrls?.length) {
-    return submit(cfg, IMAGE_I2I_PATH, {
+    return submit(cfg, engine.i2iPath, {
       prompt: input.prompt,
       images_list: input.imageUrls,
       aspect_ratio: ASPECT_RATIO,
     });
   }
-  return submit(cfg, IMAGE_T2I_PATH, {
-    prompt: input.prompt,
-    aspect_ratio: ASPECT_RATIO,
-  });
+  return submit(cfg, engine.t2iPath, { prompt: input.prompt, aspect_ratio: ASPECT_RATIO });
 }
 
-export function generateVideo(cfg: MuApiConfig, input: { imageUrl: string; prompt: string; durationSeconds: number }) {
-  return submit(cfg, VIDEO_MODEL_PATH, {
+export function generateVideo(
+  cfg: MuApiConfig,
+  input: { engineId: string; imageUrl: string; prompt: string; durationSeconds: number },
+) {
+  const engine = videoEngine(input.engineId);
+  const payload: Record<string, unknown> = {
     prompt: input.prompt,
     images_list: [input.imageUrl],
     duration: input.durationSeconds,
-    resolution: '720p',
     aspect_ratio: ASPECT_RATIO,
-  });
+  };
+  // Campos que o tier não expõe não são enviados (só o Mini tem resolution).
+  if (engine.supportsResolution) payload.resolution = '720p';
+  return submit(cfg, videoEnginePath(engine), payload);
 }
 
 // Payload real do webhook (docs/webhooks): { id, status, outputs?, error?, urls, ... }.

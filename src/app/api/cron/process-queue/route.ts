@@ -154,6 +154,7 @@ export async function GET(req: Request) {
         const persona = PersonaSchema.parse(batch.models.persona);
         const refs = [batch.models.reference_image_urls[0], batch.products.image_urls[0]].filter(Boolean) as string[];
         const { requestId } = await generateImage(cfg, {
+          engineId: DEFAULT_IMAGE_ENGINE,
           prompt: `${persona.image_prompt}. ${script.scene_description}. The person must look identical to the reference photos.`,
           imageUrls: refs,
         });
@@ -167,6 +168,7 @@ export async function GET(req: Request) {
           .select('id');
         if (!claimed?.length) continue;
         const { requestId } = await generateVideo(cfg, {
+          engineId: DEFAULT_VIDEO_ENGINE,
           imageUrl: job.composed_image_url!,
           prompt: script.motion_prompt,
           durationSeconds: batch.duration_seconds,
