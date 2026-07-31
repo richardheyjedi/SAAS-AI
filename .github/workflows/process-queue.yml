@@ -17,4 +17,4 @@ jobs:
         run: |
           curl -sf -m 120 \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            "https://autoreelsai.vercel.app/api/cron/process-queue"
+            "https://autoreelsai-mu.vercel.app/api/cron/process-queue"
