@@ -113,7 +113,7 @@ export default async function DashboardPage() {
         <div className="card stat">
           <div className="k">Gasto hoje</div>
           <div className="v">{formatUsd(gastoHoje)}</div>
-          <div className="d">teto: {formatUsd(limits.dailyCostLimitUsd)}</div>
+          <div className="d">estimado pela tabela de preços</div>
         </div>
         <div className="card stat">
           <div className="k">Taxa de falha (7d)</div>

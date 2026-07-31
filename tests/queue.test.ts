@@ -1,17 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import { dispatchAllowance, nextAction } from '@/lib/queue';
 
-const limits = { dailyVideoLimit: 40, dailyCostLimitUsd: 20 };
+const limits = { dailyVideoLimit: 40 };
 
 describe('dispatchAllowance', () => {
-  it('limita pelo teto diário de vídeos', () => {
-    expect(dispatchAllowance({ videosToday: 38, costTodayUsd: 0 }, limits, 0.45)).toBe(2);
-  });
-  it('limita pelo teto de custo', () => {
-    expect(dispatchAllowance({ videosToday: 0, costTodayUsd: 19.2 }, limits, 0.45)).toBe(1);
+  it('limita apenas pelo teto diário de vídeos', () => {
+    expect(dispatchAllowance({ videosToday: 38 }, limits)).toBe(2);
+    expect(dispatchAllowance({ videosToday: 0 }, limits)).toBe(40);
   });
   it('nunca retorna negativo', () => {
-    expect(dispatchAllowance({ videosToday: 41, costTodayUsd: 30 }, limits, 0.45)).toBe(0);
+    expect(dispatchAllowance({ videosToday: 41 }, limits)).toBe(0);
   });
 });
 

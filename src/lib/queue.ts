@@ -1,22 +1,18 @@
 import type { JobStatus } from '@/types';
 
-export interface QueueLimits { dailyVideoLimit: number; dailyCostLimitUsd: number }
+export interface QueueLimits { dailyVideoLimit: number }
 
 export function queueLimitsFromEnv(): QueueLimits {
-  return {
-    dailyVideoLimit: Number(process.env.DAILY_VIDEO_LIMIT ?? 40),
-    dailyCostLimitUsd: Number(process.env.DAILY_COST_LIMIT_USD ?? 20),
-  };
+  return { dailyVideoLimit: Number(process.env.DAILY_VIDEO_LIMIT ?? 40) };
 }
 
+// Sem teto de gasto por decisão de produto (spec 2026-07-31): o único
+// limitador de despacho é a quantidade diária de vídeos.
 export function dispatchAllowance(
-  state: { videosToday: number; costTodayUsd: number },
+  state: { videosToday: number },
   limits: QueueLimits,
-  perVideoCostUsd: number,
 ): number {
-  const byCount = limits.dailyVideoLimit - state.videosToday;
-  const byCost = Math.floor((limits.dailyCostLimitUsd - state.costTodayUsd) / perVideoCostUsd);
-  return Math.max(0, Math.min(byCount, byCost));
+  return Math.max(0, limits.dailyVideoLimit - state.videosToday);
 }
 
 export type JobAction =

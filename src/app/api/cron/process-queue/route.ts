@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { PersonaSchema, ScriptSchema } from '@/types';
 import { imageCostUsd, videoCostUsd } from '@/lib/cost';
-import { DEFAULT_IMAGE_ENGINE, DEFAULT_VIDEO_ENGINE } from '@/lib/engines';
 import { generateImage, generateVideo, muApiConfigFromEnv } from '@/lib/muapi';
 import { dispatchAllowance, nextAction, queueLimitsFromEnv } from '@/lib/queue';
 import { createServiceSupabase } from '@/lib/supabase/server';
@@ -96,13 +95,10 @@ export async function GET(req: Request) {
   const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
   const { data: todayJobs } = await supabase
     .from('video_jobs')
-    .select('cost_usd,status')
+    .select('status')
     .gte('dispatched_at', todayStart.toISOString());
   const dispatchedToday = todayJobs?.length ?? 0;
-  const state = {
-    videosToday: dispatchedToday,
-    costTodayUsd: (todayJobs ?? []).reduce((s, j) => s + Number(j.cost_usd), 0),
-  };
+  const state = { videosToday: dispatchedToday };
 
   // Circuit breaker: com muita falha no dia, para de queimar crédito na MuAPI.
   const failedToday = (todayJobs ?? []).filter((j) => j.status === 'failed').length;
@@ -111,7 +107,7 @@ export async function GET(req: Request) {
 
   const { data: candidates } = await supabase
     .from('video_jobs')
-    .select('id,status,retry_count,composed_image_url,script,batch_id,video_batches(duration_seconds,model_id,product_id,models(persona,reference_image_urls),products(image_urls,title))')
+    .select('id,status,retry_count,composed_image_url,script,batch_id,video_batches(duration_seconds,image_engine,video_engine,model_id,product_id,models(persona,reference_image_urls),products(image_urls,title))')
     .in('status', ['queued', 'ready', 'failed'])
     .order('created_at', { ascending: true })
     .limit(50);
@@ -132,12 +128,14 @@ export async function GET(req: Request) {
 
       const batch = job.video_batches as unknown as {
         duration_seconds: number;
+        image_engine: string;
+        video_engine: string;
         models: { persona: unknown; reference_image_urls: string[] };
         products: { image_urls: string[]; title: string };
       };
-      const perVideo = videoCostUsd(DEFAULT_VIDEO_ENGINE, batch.duration_seconds)
-        + imageCostUsd(DEFAULT_IMAGE_ENGINE);
-      if (dispatchAllowance(state, limits, perVideo) <= 0) break;
+      const perVideo = videoCostUsd(batch.video_engine, batch.duration_seconds)
+        + imageCostUsd(batch.image_engine);
+      if (dispatchAllowance(state, limits) <= 0) break;
 
       const script = ScriptSchema.parse(job.script);
       const now = new Date().toISOString();
@@ -154,7 +152,7 @@ export async function GET(req: Request) {
         const persona = PersonaSchema.parse(batch.models.persona);
         const refs = [batch.models.reference_image_urls[0], batch.products.image_urls[0]].filter(Boolean) as string[];
         const { requestId } = await generateImage(cfg, {
-          engineId: DEFAULT_IMAGE_ENGINE,
+          engineId: batch.image_engine,
           prompt: `${persona.image_prompt}. ${script.scene_description}. The person must look identical to the reference photos.`,
           imageUrls: refs,
         });
@@ -168,7 +166,7 @@ export async function GET(req: Request) {
           .select('id');
         if (!claimed?.length) continue;
         const { requestId } = await generateVideo(cfg, {
-          engineId: DEFAULT_VIDEO_ENGINE,
+          engineId: batch.video_engine,
           imageUrl: job.composed_image_url!,
           prompt: script.motion_prompt,
           durationSeconds: batch.duration_seconds,
@@ -177,7 +175,6 @@ export async function GET(req: Request) {
           .update({ muapi_request_id: requestId })
           .eq('id', job.id);
         state.videosToday += 1;
-        state.costTodayUsd += perVideo;
       }
       dispatched += 1;
     } catch (err) {
