@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { IMAGE_ENGINES, DEFAULT_IMAGE_ENGINE } from '@/lib/engines';
+import { imageCostUsd, modelRefsCostUsd } from '@/lib/cost';
 
 const REGIONS: { value: string; label: string }[] = [
   { value: 'br', label: '🇧🇷 Brasileira' },
@@ -15,6 +17,7 @@ export function ModelForm() {
   const [open, setOpen] = useState(false);
   const [region, setRegion] = useState('br');
   const [customPrompt, setCustomPrompt] = useState('');
+  const [engine, setEngine] = useState(DEFAULT_IMAGE_ENGINE);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,7 +29,7 @@ export function ModelForm() {
       const res = await fetch('/api/models/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ region, customPrompt: customPrompt || undefined }),
+        body: JSON.stringify({ region, customPrompt: customPrompt || undefined, imageEngine: engine }),
       });
       const body = await res.json();
       if (!res.ok) {
@@ -81,6 +84,28 @@ export function ModelForm() {
             onChange={(e) => setCustomPrompt(e.target.value)}
             placeholder="Descreva a persona desejada…"
           />
+        </label>
+        <label style={{ display: 'grid', gap: 4 }}>
+          <span className="sub">Motor de imagem</span>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {IMAGE_ENGINES.map((e) => (
+              <button
+                key={e.id}
+                type="button"
+                className={'btn' + (engine === e.id ? ' primary' : '')}
+                style={{ flex: 1, fontWeight: 400 }}
+                onClick={() => setEngine(e.id)}
+              >
+                {e.label}
+                <small style={{ display: 'block' }}>
+                  US$ {imageCostUsd(e.id).toFixed(2).replace('.', ',')}/imagem
+                </small>
+              </button>
+            ))}
+          </div>
+          <span className="sub" style={{ fontSize: 11.5 }}>
+            3 referências ≈ US$ {modelRefsCostUsd(engine, 3).toFixed(2).replace('.', ',')} (estimativa)
+          </span>
         </label>
         {error && <div className="pill p-err">{error}</div>}
         <div style={{ display: 'flex', gap: 8 }}>

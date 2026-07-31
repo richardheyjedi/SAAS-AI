@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { batchCostUsd, imageCostUsd, usdToBrl, videoCostUsd } from '@/lib/cost';
-import { DEFAULT_IMAGE_ENGINE, DEFAULT_VIDEO_ENGINE } from '@/lib/engines';
+import { DEFAULT_IMAGE_ENGINE, DEFAULT_VIDEO_ENGINE, IMAGE_ENGINES, VIDEO_ENGINES, imageEngine, videoEngine } from '@/lib/engines';
 
 export type BatchModel = {
   id: string;
@@ -36,15 +36,17 @@ export function BatchForm({ models, products }: { models: BatchModel[]; products
   const [productId, setProductId] = useState<string | null>(products[0]?.id ?? null);
   const [qty, setQty] = useState(10);
   const [duration, setDuration] = useState<5 | 10>(5);
+  const [imgEngine, setImgEngine] = useState(DEFAULT_IMAGE_ENGINE);
+  const [vidEngine, setVidEngine] = useState(DEFAULT_VIDEO_ENGINE);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const perVideoUsd = videoCostUsd(DEFAULT_VIDEO_ENGINE, duration);
+  const perVideoUsd = videoCostUsd(vidEngine, duration);
   const videoLine = qty * perVideoUsd;
-  const imageLine = qty * imageCostUsd(DEFAULT_IMAGE_ENGINE);
+  const imageLine = qty * imageCostUsd(imgEngine);
   const total = useMemo(
-    () => batchCostUsd(DEFAULT_IMAGE_ENGINE, DEFAULT_VIDEO_ENGINE, qty, duration),
-    [qty, duration],
+    () => batchCostUsd(imgEngine, vidEngine, qty, duration),
+    [imgEngine, vidEngine, qty, duration],
   );
   const totalBrl = useMemo(() => usdToBrl(total), [total]);
 
@@ -56,7 +58,7 @@ export function BatchForm({ models, products }: { models: BatchModel[]; products
       const res = await fetch('/api/batches', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ modelId, productId, videoCount: qty, durationSeconds: duration }),
+        body: JSON.stringify({ modelId, productId, videoCount: qty, durationSeconds: duration, imageEngine: imgEngine, videoEngine: vidEngine }),
       });
       const body = await res.json();
       if (!res.ok) {
@@ -166,11 +168,47 @@ export function BatchForm({ models, products }: { models: BatchModel[]; products
             </div>
           </div>
         </div>
+        <div className="card step">
+          <div className="step-tag">Passo 4</div>
+          <h3>Motores</h3>
+          <div className="sub" style={{ marginBottom: 8 }}>Vídeo · Seedance 2.0</div>
+          <div className="choices">
+            {VIDEO_ENGINES.map((e) => (
+              <button
+                key={e.id}
+                type="button"
+                className={'choice' + (vidEngine === e.id ? ' sel' : '')}
+                onClick={() => setVidEngine(e.id)}
+              >
+                <span>
+                  <b>{e.label}</b>
+                  <small>{formatUsd(videoCostUsd(e.id, duration))} por vídeo de {duration}s</small>
+                </span>
+              </button>
+            ))}
+          </div>
+          <div className="sub" style={{ margin: '10px 0 8px' }}>Composição da imagem</div>
+          <div className="choices">
+            {IMAGE_ENGINES.map((e) => (
+              <button
+                key={e.id}
+                type="button"
+                className={'choice' + (imgEngine === e.id ? ' sel' : '')}
+                onClick={() => setImgEngine(e.id)}
+              >
+                <span>
+                  <b>{e.label}</b>
+                  <small>{formatUsd(imageCostUsd(e.id))} por imagem</small>
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
       <div className="card cost">
         <h3>Custo estimado do lote</h3>
         <div className="cost-line">
-          <span>Vídeo · Seedance 2.0 Mini</span>
+          <span>Vídeo · {videoEngine(vidEngine).label}</span>
           <b>{formatUsd(videoLine)}</b>
         </div>
         <div className="cost-line">
@@ -180,7 +218,7 @@ export function BatchForm({ models, products }: { models: BatchModel[]; products
           <span></span>
         </div>
         <div className="cost-line">
-          <span>Imagens · GPT Image 2</span>
+          <span>Imagens · {imageEngine(imgEngine).label}</span>
           <b>{formatUsd(imageLine)}</b>
         </div>
         <div className="cost-line">
@@ -201,7 +239,7 @@ export function BatchForm({ models, products }: { models: BatchModel[]; products
           {loading ? 'Gerando roteiros…' : `Gerar ${qty} roteiros →`}
         </button>
         <div className="cost-note">
-          Você ainda revisa os roteiros antes da geração começar. Nada é cobrado até a confirmação final.
+          Você ainda revisa os roteiros antes da geração começar. Nada é cobrado até a confirmação final. Valores estimados pela tabela de preços da MuAPI.
         </div>
       </div>
     </div>
