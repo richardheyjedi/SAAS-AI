@@ -23,9 +23,18 @@ describe('registro de motores de vídeo', () => {
     expect(VIDEO_ENGINES).toHaveLength(9);
     expect(new Set(VIDEO_ENGINE_IDS).size).toBe(9);
   });
-  it('preços de catálogo nos extremos e só o Mini com resolution', () => {
-    expect(videoEngine('seedance-2-mini-image-to-video').usdBase5s).toBe(0.2);
-    expect(videoEngine('seedance-2-vip-image-to-video-4k').usdBase5s).toBe(6.75);
+  it('preços de catálogo dos 9 tiers e só o Mini com resolution', () => {
+    expect(VIDEO_ENGINES.map((e) => [e.id, e.usdBase5s])).toEqual([
+      ['seedance-2-mini-image-to-video', 0.2],
+      ['seedance-2-i2v-480p', 0.6],
+      ['seedance-2-i2v', 0.75],
+      ['seedance-2-image-to-video-fast', 0.75],
+      ['seedance-2-image-to-video', 1.25],
+      ['seedance-2-vip-image-to-video-fast', 1.05],
+      ['seedance-2-vip-image-to-video', 1.5],
+      ['seedance-2-vip-image-to-video-1080p', 3.375],
+      ['seedance-2-vip-image-to-video-4k', 6.75],
+    ]);
     expect(VIDEO_ENGINES.filter((e) => e.supportsResolution).map((e) => e.id))
       .toEqual(['seedance-2-mini-image-to-video']);
   });
