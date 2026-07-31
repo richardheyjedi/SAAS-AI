@@ -1,29 +1,21 @@
 import { NextResponse } from 'next/server';
-import { z } from 'zod';
 import { PersonaSchema } from '@/types';
 import { generateScripts } from '@/lib/claude';
 import { batchCostUsd } from '@/lib/cost';
-import { DEFAULT_IMAGE_ENGINE, DEFAULT_VIDEO_ENGINE } from '@/lib/engines';
 import { createServerSupabase } from '@/lib/supabase/server';
+import { BatchBodySchema } from './schema';
 
 // Gerar até 40 roteiros com o Claude passa fácil do timeout default da Vercel.
 export const maxDuration = 300;
-
-const BodySchema = z.object({
-  modelId: z.string().uuid(),
-  productId: z.string().uuid(),
-  videoCount: z.number().int().min(1).max(40),
-  durationSeconds: z.union([z.literal(5), z.literal(10)]),
-});
 
 export async function POST(req: Request) {
   const supabase = await createServerSupabase();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
 
-  const parsed = BodySchema.safeParse(await req.json());
+  const parsed = BatchBodySchema.safeParse(await req.json());
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
-  const { modelId, productId, videoCount, durationSeconds } = parsed.data;
+  const { modelId, productId, videoCount, durationSeconds, imageEngine, videoEngine } = parsed.data;
 
   const [{ data: model }, { data: product }] = await Promise.all([
     supabase.from('models').select('persona,status').eq('id', modelId).single(),
@@ -41,10 +33,14 @@ export async function POST(req: Request) {
   // A quantidade real de roteiros devolvidos pelo Claude é a fonte de verdade:
   // se vier diferente do pedido, o lote é gravado com o que existe de fato.
   const actualCount = scripts.length;
-  const estimated = batchCostUsd(DEFAULT_IMAGE_ENGINE, DEFAULT_VIDEO_ENGINE, actualCount, durationSeconds);
+  const estimated = batchCostUsd(imageEngine, videoEngine, actualCount, durationSeconds);
   const { data: batch, error } = await supabase
     .from('video_batches')
-    .insert({ model_id: modelId, product_id: productId, video_count: actualCount, duration_seconds: durationSeconds, estimated_cost_usd: estimated })
+    .insert({
+      model_id: modelId, product_id: productId, video_count: actualCount,
+      duration_seconds: durationSeconds, estimated_cost_usd: estimated,
+      image_engine: imageEngine, video_engine: videoEngine,
+    })
     .select('id').single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
