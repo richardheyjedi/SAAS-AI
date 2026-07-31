@@ -18,7 +18,12 @@ export async function middleware(request: NextRequest) {
     },
   );
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user && request.nextUrl.pathname !== '/login') {
+  // Signups do Supabase podem estar abertos ao público; a allowlist garante que
+  // só as contas listadas em ALLOWED_EMAILS acessam o painel e as APIs.
+  const allowed = (process.env.ALLOWED_EMAILS ?? '')
+    .split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
+  const denied = user && allowed.length > 0 && !allowed.includes(user.email?.toLowerCase() ?? '');
+  if ((!user || denied) && request.nextUrl.pathname !== '/login') {
     return NextResponse.redirect(new URL('/login', request.url));
   }
   return response;

@@ -5,6 +5,9 @@ import { generatePersona } from '@/lib/claude';
 import { generateImage, muApiConfigFromEnv } from '@/lib/muapi';
 import { createServerSupabase } from '@/lib/supabase/server';
 
+// Persona via Claude + submissões de referência à MuAPI numa request só.
+export const maxDuration = 60;
+
 const BodySchema = z.object({
   region: RegionSchema,
   customPrompt: z.string().max(2000).optional(),

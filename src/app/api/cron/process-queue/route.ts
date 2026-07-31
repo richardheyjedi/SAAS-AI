@@ -5,6 +5,9 @@ import { generateImage, generateVideo, muApiConfigFromEnv } from '@/lib/muapi';
 import { dispatchAllowance, nextAction, queueLimitsFromEnv } from '@/lib/queue';
 import { createServiceSupabase } from '@/lib/supabase/server';
 
+// Até 50 despachos sequenciais com chamadas externas por ciclo.
+export const maxDuration = 300;
+
 /** Tempo máximo que um job pode ficar esperando o webhook da MuAPI antes de ser dado como falho. */
 const WEBHOOK_TIMEOUT_MS = 2 * 60 * 60 * 1000;
 /** Mínimo de despachos no dia para o circuit breaker de taxa de falha valer. */
@@ -15,6 +18,29 @@ const BREAKER_FAILURE_RATE = 0.3;
 const MAX_RETRIES = 3;
 
 type ServiceSupabase = ReturnType<typeof createServiceSupabase>;
+
+/**
+ * Modelos presos em 'generating_refs' sem nenhuma referência ainda em geração
+ * (webhooks perdidos já viraram 'failed' na reconciliação) são promovidos para
+ * aprovação com as refs que tiverem — mesma filosofia do webhook. Só considera
+ * modelos mais antigos que o cutoff para não competir com o fluxo normal.
+ */
+async function sweepStuckModels(supabase: ServiceSupabase, stuckCutoff: string) {
+  const { data: models } = await supabase
+    .from('models').select('id')
+    .eq('status', 'generating_refs')
+    .lt('created_at', stuckCutoff);
+  for (const model of models ?? []) {
+    const { count } = await supabase.from('image_jobs')
+      .select('id', { count: 'exact', head: true })
+      .eq('model_id', model.id).eq('status', 'generating');
+    if (count === 0) {
+      await supabase.from('models')
+        .update({ status: 'pending_approval' })
+        .eq('id', model.id).eq('status', 'generating_refs');
+    }
+  }
+}
 
 /**
  * Fecha lotes cuja última transição terminal aconteceu no lado do cron
@@ -55,6 +81,14 @@ export async function GET(req: Request) {
     .update({ status: 'failed', error: 'Timeout aguardando webhook da MuAPI' })
     .in('status', ['composing', 'generating'])
     .lt('dispatched_at', stuckCutoff);
+
+  // Referências de modelo também perdem webhook: sem esta reconciliação o
+  // modelo ficaria preso em 'generating_refs' para sempre.
+  await supabase
+    .from('image_jobs')
+    .update({ status: 'failed', error: 'Timeout aguardando webhook da MuAPI' })
+    .eq('status', 'generating')
+    .lt('created_at', stuckCutoff);
 
   // Estado do dia medido pela data de DESPACHO (não de criação): é o despacho
   // que consome orçamento, e um lote criado ontem pode ser processado hoje.
@@ -105,7 +139,16 @@ export async function GET(req: Request) {
 
       const script = ScriptSchema.parse(job.script);
       const now = new Date().toISOString();
+      // Claim atômico ANTES de chamar a MuAPI: se outro ciclo já pegou o job
+      // (ou a função anterior morreu depois do submit), não submetemos de novo.
+      // Função morta ENTRE claim e submit deixa o job sem request_id e a
+      // reconciliação de timeout acima o devolve à fila.
       if (action.kind === 'compose') {
+        const { data: claimed } = await supabase.from('video_jobs')
+          .update({ status: 'composing', dispatched_at: now })
+          .eq('id', job.id).eq('status', 'queued')
+          .select('id');
+        if (!claimed?.length) continue;
         const persona = PersonaSchema.parse(batch.models.persona);
         const refs = [batch.models.reference_image_urls[0], batch.products.image_urls[0]].filter(Boolean) as string[];
         const { requestId } = await generateImage(cfg, {
@@ -113,16 +156,21 @@ export async function GET(req: Request) {
           imageUrls: refs,
         });
         await supabase.from('video_jobs')
-          .update({ status: 'composing', muapi_request_id: requestId, dispatched_at: now })
+          .update({ muapi_request_id: requestId })
           .eq('id', job.id);
       } else {
+        const { data: claimed } = await supabase.from('video_jobs')
+          .update({ status: 'generating', cost_usd: perVideo, dispatched_at: now })
+          .eq('id', job.id).eq('status', 'ready')
+          .select('id');
+        if (!claimed?.length) continue;
         const { requestId } = await generateVideo(cfg, {
           imageUrl: job.composed_image_url!,
           prompt: script.motion_prompt,
           durationSeconds: batch.duration_seconds,
         });
         await supabase.from('video_jobs')
-          .update({ status: 'generating', muapi_request_id: requestId, cost_usd: perVideo, dispatched_at: now })
+          .update({ muapi_request_id: requestId })
           .eq('id', job.id);
         state.videosToday += 1;
         state.costTodayUsd += perVideo;
@@ -136,7 +184,8 @@ export async function GET(req: Request) {
     }
   }
 
-  // Nunca pode derrubar a rota: o sweep é limpeza, não parte do despacho.
+  // Nunca podem derrubar a rota: sweeps são limpeza, não parte do despacho.
+  try { await sweepStuckModels(supabase, stuckCutoff); } catch { /* ignora */ }
   try { await sweepFinishedBatches(supabase); } catch { /* ignora */ }
 
   if (paused) {

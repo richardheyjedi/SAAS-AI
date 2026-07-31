@@ -5,6 +5,9 @@ import { generateScripts } from '@/lib/claude';
 import { batchCostUsd } from '@/lib/cost';
 import { createServerSupabase } from '@/lib/supabase/server';
 
+// Gerar até 40 roteiros com o Claude passa fácil do timeout default da Vercel.
+export const maxDuration = 300;
+
 const BodySchema = z.object({
   modelId: z.string().uuid(),
   productId: z.string().uuid(),
