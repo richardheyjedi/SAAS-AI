@@ -82,7 +82,7 @@ export default async function ModelsPage() {
                         ))}
                       </div>
                     )}
-                    <span className="pill" style={{ position: 'absolute' }}>{REGION_LABEL[m.region] ?? m.region}</span>
+                    <span className="pill">{REGION_LABEL[m.region] ?? m.region}</span>
                   </div>
                 );
               })()}

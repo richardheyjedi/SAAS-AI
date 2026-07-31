@@ -96,7 +96,10 @@ export function ModelForm() {
       });
       const body = await res.json();
       if (!res.ok) {
-        setError(typeof body?.error === 'string' ? body.error : 'Não foi possível criar o modelo.');
+        const flat = body?.error;
+        setError(
+          typeof flat === 'string' ? flat : flat?.formErrors?.[0] ?? 'Não foi possível criar o modelo.',
+        );
         return;
       }
       setOpen(false);
