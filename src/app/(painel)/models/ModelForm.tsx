@@ -59,16 +59,15 @@ export function ModelForm() {
     setUploading(true);
     try {
       const supabase = createBrowserSupabase();
-      const uploaded: string[] = [];
       for (const f of files) {
         const path = `${crypto.randomUUID()}.${ACCEPTED_TYPES[f.type]}`;
         const { error: upErr } = await supabase.storage.from('model-refs').upload(path, f);
         if (upErr) throw upErr;
-        uploaded.push(supabase.storage.from('model-refs').getPublicUrl(path).data.publicUrl);
+        const url = supabase.storage.from('model-refs').getPublicUrl(path).data.publicUrl;
+        setRefUrls((prev) => [...prev, url]);
       }
-      setRefUrls((prev) => [...prev, ...uploaded]);
-    } catch {
-      setError('Falha no upload. Verifique a conexão e tente de novo.');
+    } catch (err) {
+      setError(`Falha no upload: ${err instanceof Error ? err.message : 'erro desconhecido'}. Tente de novo.`);
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
