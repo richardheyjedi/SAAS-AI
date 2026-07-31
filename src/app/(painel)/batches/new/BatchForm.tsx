@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { batchCostUsd, usdToBrl, VIDEO_USD_PER_SECOND, IMAGE_USD } from '@/lib/cost';
+import { batchCostUsd, imageCostUsd, usdToBrl, videoCostUsd } from '@/lib/cost';
+import { DEFAULT_IMAGE_ENGINE, DEFAULT_VIDEO_ENGINE } from '@/lib/engines';
 
 export type BatchModel = {
   id: string;
@@ -38,9 +39,13 @@ export function BatchForm({ models, products }: { models: BatchModel[]; products
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const videoLine = qty * duration * VIDEO_USD_PER_SECOND;
-  const imageLine = qty * IMAGE_USD;
-  const total = useMemo(() => batchCostUsd(qty, duration), [qty, duration]);
+  const perVideoUsd = videoCostUsd(DEFAULT_VIDEO_ENGINE, duration);
+  const videoLine = qty * perVideoUsd;
+  const imageLine = qty * imageCostUsd(DEFAULT_IMAGE_ENGINE);
+  const total = useMemo(
+    () => batchCostUsd(DEFAULT_IMAGE_ENGINE, DEFAULT_VIDEO_ENGINE, qty, duration),
+    [qty, duration],
+  );
   const totalBrl = useMemo(() => usdToBrl(total), [total]);
 
   async function handleSubmit() {
@@ -170,7 +175,7 @@ export function BatchForm({ models, products }: { models: BatchModel[]; products
         </div>
         <div className="cost-line">
           <span>
-            {qty} × {duration}s × US$ {VIDEO_USD_PER_SECOND.toFixed(2).replace('.', ',')}/s
+            {qty} × {formatUsd(perVideoUsd)} por vídeo
           </span>
           <span></span>
         </div>

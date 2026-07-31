@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { PersonaSchema, ScriptSchema } from '@/types';
-import { videoCostUsd } from '@/lib/cost';
+import { imageCostUsd, videoCostUsd } from '@/lib/cost';
+import { DEFAULT_IMAGE_ENGINE, DEFAULT_VIDEO_ENGINE } from '@/lib/engines';
 import { generateImage, generateVideo, muApiConfigFromEnv } from '@/lib/muapi';
 import { dispatchAllowance, nextAction, queueLimitsFromEnv } from '@/lib/queue';
 import { createServiceSupabase } from '@/lib/supabase/server';
@@ -134,7 +135,8 @@ export async function GET(req: Request) {
         models: { persona: unknown; reference_image_urls: string[] };
         products: { image_urls: string[]; title: string };
       };
-      const perVideo = videoCostUsd(batch.duration_seconds);
+      const perVideo = videoCostUsd(DEFAULT_VIDEO_ENGINE, batch.duration_seconds)
+        + imageCostUsd(DEFAULT_IMAGE_ENGINE);
       if (dispatchAllowance(state, limits, perVideo) <= 0) break;
 
       const script = ScriptSchema.parse(job.script);

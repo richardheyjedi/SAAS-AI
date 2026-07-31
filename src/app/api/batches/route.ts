@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { PersonaSchema } from '@/types';
 import { generateScripts } from '@/lib/claude';
 import { batchCostUsd } from '@/lib/cost';
+import { DEFAULT_IMAGE_ENGINE, DEFAULT_VIDEO_ENGINE } from '@/lib/engines';
 import { createServerSupabase } from '@/lib/supabase/server';
 
 // Gerar até 40 roteiros com o Claude passa fácil do timeout default da Vercel.
@@ -40,7 +41,7 @@ export async function POST(req: Request) {
   // A quantidade real de roteiros devolvidos pelo Claude é a fonte de verdade:
   // se vier diferente do pedido, o lote é gravado com o que existe de fato.
   const actualCount = scripts.length;
-  const estimated = batchCostUsd(actualCount, durationSeconds);
+  const estimated = batchCostUsd(DEFAULT_IMAGE_ENGINE, DEFAULT_VIDEO_ENGINE, actualCount, durationSeconds);
   const { data: batch, error } = await supabase
     .from('video_batches')
     .insert({ model_id: modelId, product_id: productId, video_count: actualCount, duration_seconds: durationSeconds, estimated_cost_usd: estimated })
