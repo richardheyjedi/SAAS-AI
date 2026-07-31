@@ -242,9 +242,8 @@ NEXT_PUBLIC_SUPABASE_URL=https://...supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 SUPABASE_SERVICE_ROLE_KEY=...             # Só no server (API routes/cron)
 
-# Guardrails (tetos de segurança — a quantidade real é escolhida por lote)
+# Guardrails (teto de segurança — a quantidade real é escolhida por lote)
 DAILY_VIDEO_LIMIT=40                      # Teto de vídeos/dia; fila segura o excedente p/ o dia seguinte
-DAILY_COST_LIMIT_USD=20                   # Pipeline pausa se o gasto do dia exceder
 CRON_SECRET=...                           # Protege o endpoint do cron
 ```
 

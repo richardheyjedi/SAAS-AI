@@ -82,7 +82,7 @@ O motor de imagem e o de vídeo são escolhidos por modelo/lote, e o custo estim
 | Vídeo (5s) | Seedance 2.0 VIP Fast | US$ 1,05 |
 | Vídeo (5s) | Seedance 2.0 Full | US$ 1,25 |
 | Vídeo (5s) | Seedance 2.0 VIP | US$ 1,50 |
-| Vídeo (5s) | Seedance 2.0 VIP 1080p | US$ 3,375 |
+| Vídeo (5s) | Seedance 2.0 VIP 1080p | US$ 3,38 (3,375 de catálogo) |
 | Vídeo (5s) | Seedance 2.0 VIP 4K | US$ 6,75 |
 
 O guardrail `DAILY_VIDEO_LIMIT` limita a quantidade de vídeos processados por dia pelo cron, evitando estouro de orçamento (não há mais um teto de gasto diário em USD).

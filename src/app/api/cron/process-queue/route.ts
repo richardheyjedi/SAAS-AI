@@ -105,12 +105,17 @@ export async function GET(req: Request) {
   const paused = dispatchedToday >= BREAKER_MIN_SAMPLE
     && failedToday / dispatchedToday > BREAKER_FAILURE_RATE;
 
-  const { data: candidates } = await supabase
+  const { data: candidates, error: candidatesError } = await supabase
     .from('video_jobs')
     .select('id,status,retry_count,composed_image_url,script,batch_id,video_batches(duration_seconds,image_engine,video_engine,model_id,product_id,models(persona,reference_image_urls),products(image_urls,title))')
     .in('status', ['queued', 'ready', 'failed'])
     .order('created_at', { ascending: true })
     .limit(50);
+  // Falha do select (ex.: migração 0002 não aplicada) precisa ser visível,
+  // não um ciclo "saudável" que despacha zero para sempre.
+  if (candidatesError) {
+    return NextResponse.json({ error: candidatesError.message }, { status: 500 });
+  }
 
   let dispatched = 0;
   for (const job of candidates ?? []) {
