@@ -14,12 +14,19 @@ export async function POST(req: Request) {
 
   const parsed = ModelGenerateBodySchema.safeParse(await req.json());
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
-  const { region, customPrompt, refCount, imageEngine } = parsed.data;
+  const { region, customPrompt, refCount, imageEngine, referenceUrls } = parsed.data;
 
   const persona = await generatePersona({ region, customPrompt });
   const { data: model, error } = await supabase
     .from('models')
-    .insert({ name: persona.name, region, persona, status: 'generating_refs', image_engine: imageEngine })
+    .insert({
+      name: persona.name,
+      region,
+      persona,
+      status: refCount > 0 ? 'generating_refs' : 'pending_approval',
+      image_engine: imageEngine,
+      reference_image_urls: referenceUrls,
+    })
     .select('id').single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 

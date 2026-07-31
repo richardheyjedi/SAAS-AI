@@ -12,6 +12,25 @@ describe('ModelGenerateBodySchema', () => {
   it('rejeita motor fora do registro', () => {
     expect(ModelGenerateBodySchema.safeParse({ region: 'br', imageEngine: 'dall-e' }).success).toBe(false);
   });
+  it('aceita refCount 0 quando há referências anexadas', () => {
+    const p = ModelGenerateBodySchema.parse({
+      region: 'br', refCount: 0, referenceUrls: ['https://cdn/x.jpg'],
+    });
+    expect(p.refCount).toBe(0);
+    expect(p.referenceUrls).toEqual(['https://cdn/x.jpg']);
+  });
+  it('rejeita refCount 0 sem nenhuma referência', () => {
+    const r = ModelGenerateBodySchema.safeParse({ region: 'br', refCount: 0 });
+    expect(r.success).toBe(false);
+  });
+  it('rejeita URL inválida e mais de 10 URLs', () => {
+    expect(ModelGenerateBodySchema.safeParse({ region: 'br', referenceUrls: ['nao-e-url'] }).success).toBe(false);
+    const many = Array.from({ length: 11 }, (_, i) => `https://cdn/${i}.jpg`);
+    expect(ModelGenerateBodySchema.safeParse({ region: 'br', referenceUrls: many }).success).toBe(false);
+  });
+  it('default de referenceUrls é lista vazia', () => {
+    expect(ModelGenerateBodySchema.parse({ region: 'br' }).referenceUrls).toEqual([]);
+  });
 });
 
 describe('BatchBodySchema', () => {
