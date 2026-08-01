@@ -15,6 +15,7 @@ type ModelRow = {
   status: 'generating_refs' | 'pending_approval' | 'approved';
   image_engine: string;
   created_at: string;
+  products: { title: string } | { title: string }[] | null;
 };
 
 const REGION_LABEL: Record<string, string> = {
@@ -37,7 +38,7 @@ export default async function ModelDetailPage({ params }: { params: Promise<{ id
   try {
     const supabase = await createServerSupabase();
     const [{ data }, { count }] = await Promise.all([
-      supabase.from('models').select('*').eq('id', id).single(),
+      supabase.from('models').select('*,products(title)').eq('id', id).single(),
       supabase.from('image_jobs')
         .select('id', { count: 'exact', head: true })
         .eq('model_id', id).eq('status', 'generating'),
@@ -69,6 +70,10 @@ export default async function ModelDetailPage({ params }: { params: Promise<{ id
           <h1>{model.name}</h1>
           <div className="sub">
             {REGION_LABEL[model.region] ?? model.region} · motor {engineLabel} · criada em {createdAt}
+            {(() => {
+              const p = Array.isArray(model.products) ? model.products[0] : model.products;
+              return p ? <> · 🛍 produto: <b>{p.title}</b></> : null;
+            })()}
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

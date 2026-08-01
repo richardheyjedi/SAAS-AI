@@ -32,6 +32,11 @@ describe('ModelGenerateBodySchema', () => {
   it('default de referenceUrls é lista vazia', () => {
     expect(ModelGenerateBodySchema.parse({ region: 'br' }).referenceUrls).toEqual([]);
   });
+  it('aceita productId uuid opcional e rejeita id inválido', () => {
+    expect(ModelGenerateBodySchema.parse({ region: 'br', productId: uuid }).productId).toBe(uuid);
+    expect(ModelGenerateBodySchema.parse({ region: 'br' }).productId).toBeUndefined();
+    expect(ModelGenerateBodySchema.safeParse({ region: 'br', productId: 'nao-uuid' }).success).toBe(false);
+  });
 });
 
 describe('BatchBodySchema', () => {

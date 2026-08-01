@@ -30,6 +30,7 @@ export default async function NewBatchPage() {
         regionLabel: REGION_LABEL[m.region] ?? m.region,
         niche: persona.success ? persona.data.niche : '',
         thumb: m.reference_image_urls?.[0] ?? null,
+        productId: m.product_id ?? null,
       };
     });
     products = (productsRes.data ?? []).map((p: any) => ({

@@ -23,11 +23,14 @@ const MAX_FILE_MB = 8;
 const MAX_ATTACHED = 10;
 const AI_REF_OPTIONS = [0, 1, 2, 3, 4, 5];
 
-export function ModelForm() {
+export type ModelFormProduct = { id: string; title: string };
+
+export function ModelForm({ products }: { products: ModelFormProduct[] }) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
   const [region, setRegion] = useState('br');
+  const [productId, setProductId] = useState('');
   const [customPrompt, setCustomPrompt] = useState('');
   const [engine, setEngine] = useState(DEFAULT_IMAGE_ENGINE);
   const [refCount, setRefCount] = useState(3);
@@ -92,6 +95,7 @@ export function ModelForm() {
           imageEngine: engine,
           refCount,
           referenceUrls: refUrls,
+          productId: productId || undefined,
         }),
       });
       const body = await res.json();
@@ -155,6 +159,17 @@ export function ModelForm() {
                   {REGIONS.map((r) => (
                     <option key={r.value} value={r.value}>
                       {r.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="lbl">
+                <span className="sub">Produto relacionado (opcional — a persona nasce alinhada a ele)</span>
+                <select className="field" value={productId} onChange={(e) => setProductId(e.target.value)}>
+                  <option value="">Nenhum — persona genérica</option>
+                  {products.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.title}
                     </option>
                   ))}
                 </select>

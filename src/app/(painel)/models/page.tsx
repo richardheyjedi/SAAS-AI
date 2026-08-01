@@ -32,12 +32,18 @@ const STATUS_INFO: Record<ModelRow['status'], { label: string; cls: string }> = 
 
 export default async function ModelsPage() {
   let models: ModelRow[] = [];
+  let products: { id: string; title: string }[] = [];
   try {
     const supabase = await createServerSupabase();
-    const { data } = await supabase.from('models').select('*').order('created_at', { ascending: false });
-    models = data ?? [];
+    const [modelsRes, productsRes] = await Promise.all([
+      supabase.from('models').select('*').order('created_at', { ascending: false }),
+      supabase.from('products').select('id,title').order('created_at', { ascending: false }),
+    ]);
+    models = modelsRes.data ?? [];
+    products = productsRes.data ?? [];
   } catch {
     models = [];
+    products = [];
   }
 
   return (
@@ -114,7 +120,7 @@ export default async function ModelsPage() {
             </div>
           );
         })}
-        <ModelForm />
+        <ModelForm products={products} />
       </div>
     </section>
   );

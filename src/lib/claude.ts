@@ -49,7 +49,8 @@ async function callValidated<T>(
 }
 
 export function generatePersona(
-  input: { region: Region; customPrompt?: string }, call: ModelCaller = defaultTextCaller(),
+  input: { region: Region; customPrompt?: string; productContext?: string },
+  call: ModelCaller = defaultTextCaller(),
 ): Promise<Persona> {
   return callValidated(call, personaSystemPrompt, personaUserPrompt(input), (d) => PersonaSchema.parse(d));
 }

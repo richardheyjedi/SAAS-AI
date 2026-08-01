@@ -13,10 +13,13 @@ const regionBrief: Record<Region, string> = {
   custom: 'Siga fielmente a descrição personalizada fornecida.',
 };
 
-export function personaUserPrompt(input: { region: Region; customPrompt?: string }): string {
+export function personaUserPrompt(input: { region: Region; customPrompt?: string; productContext?: string }): string {
   return [
     `Crie uma persona para region="${input.region}".`,
     `Perfil regional: ${regionBrief[input.region]}`,
+    input.productContext
+      ? `Esta creator vai vender o seguinte produto — alinhe nicho, personalidade e estilo a ele: ${input.productContext}`
+      : '',
     input.customPrompt ? `Descrição personalizada do usuário (prioridade máxima): ${input.customPrompt}` : '',
     'Retorne apenas o JSON.',
   ].filter(Boolean).join('\n');

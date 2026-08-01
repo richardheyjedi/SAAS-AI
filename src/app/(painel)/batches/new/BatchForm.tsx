@@ -16,6 +16,7 @@ export type BatchModel = {
   regionLabel: string;
   niche: string;
   thumb: string | null;
+  productId: string | null;
 };
 
 export type BatchProduct = {
@@ -97,7 +98,13 @@ export function BatchForm({ models, products }: { models: BatchModel[]; products
                 key={m.id}
                 type="button"
                 className={'choice' + (modelId === m.id ? ' sel' : '')}
-                onClick={() => setModelId(m.id)}
+                onClick={() => {
+                  setModelId(m.id);
+                  // Modelo com produto vinculado pré-seleciona o par certo.
+                  if (m.productId && products.some((p) => p.id === m.productId)) {
+                    setProductId(m.productId);
+                  }
+                }}
               >
                 <span
                   className={'dot' + (m.thumb ? '' : ' ' + AV_CLASSES[idx % AV_CLASSES.length])}
