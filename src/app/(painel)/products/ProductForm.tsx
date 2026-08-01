@@ -66,6 +66,9 @@ export function ProductForm() {
           onClick={(e) => {
             if (e.target === e.currentTarget && !loading) setOpen(false);
           }}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape' && !loading) setOpen(false);
+          }}
         >
           <div className="modal">
             <div className="modal-head">
@@ -83,7 +86,7 @@ export function ProductForm() {
             <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 14 }}>
               <label className="lbl">
                 <span className="sub">Título</span>
-                <input className="field" value={title} onChange={(e) => setTitle(e.target.value)} required />
+                <input className="field" value={title} onChange={(e) => setTitle(e.target.value)} required autoFocus />
               </label>
               <label className="lbl">
                 <span className="sub">Descrição</span>

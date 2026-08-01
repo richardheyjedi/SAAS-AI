@@ -128,7 +128,10 @@ export function ModelForm() {
           aria-modal="true"
           aria-label="Criar modelo"
           onClick={(e) => {
-            if (e.target === e.currentTarget && !loading && !uploading) setOpen(false);
+            if (e.target === e.currentTarget && !loading) setOpen(false);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape' && !loading) setOpen(false);
           }}
         >
           <div className="modal">
@@ -147,7 +150,8 @@ export function ModelForm() {
             <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 14 }}>
               <label className="lbl">
                 <span className="sub">Região</span>
-                <select className="field" value={region} onChange={(e) => setRegion(e.target.value)}>
+                {/* autoFocus: leva o foco para dentro do dialog na abertura (sem focus trap completo — app single-user) */}
+                <select className="field" value={region} onChange={(e) => setRegion(e.target.value)} autoFocus>
                   {REGIONS.map((r) => (
                     <option key={r.value} value={r.value}>
                       {r.label}
