@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const APP_NAME = 'AutoReelsAI';
+export const APP_NAME = 'UGCX';
 
 export const RegionSchema = z.enum(['br', 'us', 'us_latina', 'custom']);
 export type Region = z.infer<typeof RegionSchema>;

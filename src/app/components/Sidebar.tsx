@@ -71,7 +71,7 @@ export function Sidebar() {
       <div className="logo">
         <div className="logo-mark"></div>
         <b>
-          AutoReels<span>AI</span>
+          UGC<span>X</span>
         </b>
       </div>
       <div className="nav-label">Estúdio</div>

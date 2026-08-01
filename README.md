@@ -1,4 +1,4 @@
-# AutoReelsAI
+﻿# UGCX (ex-AutoReelsAI)
 
 ## Visão geral
 
