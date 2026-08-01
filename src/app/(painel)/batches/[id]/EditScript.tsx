@@ -9,6 +9,7 @@ export function EditScript({ jobId, script }: { jobId: string; script: Script })
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState(script.title);
   const [hook, setHook] = useState(script.hook);
+  const [speech, setSpeech] = useState(script.speech ?? '');
   const [scene, setScene] = useState(script.scene_description);
   const [motion, setMotion] = useState(script.motion_prompt);
   const [loading, setLoading] = useState(false);
@@ -22,7 +23,10 @@ export function EditScript({ jobId, script }: { jobId: string; script: Script })
       const res = await fetch(`/api/jobs/${jobId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, hook, scene_description: scene, motion_prompt: motion }),
+        body: JSON.stringify({
+          title, hook, scene_description: scene, motion_prompt: motion,
+          speech: speech.trim() || undefined,
+        }),
       });
       const body = await res.json();
       if (!res.ok) {
@@ -83,6 +87,17 @@ export function EditScript({ jobId, script }: { jobId: string; script: Script })
               <label className="lbl">
                 <span className="sub">Gancho — a primeira fala/chamada (mín. 5)</span>
                 <textarea className="field" style={{ minHeight: 54 }} value={hook} onChange={(e) => setHook(e.target.value)} />
+              </label>
+              <label className="lbl">
+                <span className="sub">🗣 Fala — o que a modelo DIZ olhando para a câmera (em português; vira voz com som ligado)</span>
+                <textarea
+                  className="field"
+                  style={{ minHeight: 54 }}
+                  value={speech}
+                  onChange={(e) => setSpeech(e.target.value)}
+                  placeholder='Ex.: "gente, esse achado é surreal — corre que tá acabando!"'
+                  maxLength={200}
+                />
               </label>
               <label className="lbl">
                 <span className="sub">Cena — descreve a IMAGEM base, em inglês (mín. 20)</span>

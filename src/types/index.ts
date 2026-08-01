@@ -25,6 +25,8 @@ export const ScriptSchema = z.object({
   hook: z.string().min(5),
   scene_description: z.string().min(20),
   motion_prompt: z.string().min(20),
+  /** Fala exata da modelo (no idioma da persona). Vira voz quando o lote tem som ligado. */
+  speech: z.string().max(200).optional(),
 });
 export type Script = z.infer<typeof ScriptSchema>;
 export const ScriptListSchema = z.object({ scripts: z.array(ScriptSchema).min(1) });

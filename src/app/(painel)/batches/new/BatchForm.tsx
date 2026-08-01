@@ -215,8 +215,8 @@ export function BatchForm({ models, products }: { models: BatchModel[]; products
                 </div>
                 {audio && (
                   <span className="sub" style={{ fontSize: 11.5, maxWidth: 320 }}>
-                    💡 Com som ligado, os roteiros já incluem a <b>fala da modelo em português</b> (o gancho, dito
-                    olhando para a câmera). Você pode ajustar a frase em ✎ Editar roteiro antes de aprovar.
+                    💡 Com som ligado, cada roteiro ganha o campo <b>🗣 Fala</b> — a frase exata que a modelo diz
+                    em português. Revise/edite em ✎ Editar roteiro antes de aprovar.
                   </span>
                 )}
               </div>

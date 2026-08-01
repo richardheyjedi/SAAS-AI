@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import { PersonaSchema, ScriptSchema } from '@/types';
 import { imageCostUsd, videoCostUsd } from '@/lib/cost';
+import { videoEngine as videoEngineOf } from '@/lib/engines';
 import { generateImage, generateVideo, muApiConfigFromEnv } from '@/lib/muapi';
 import { dispatchAllowance, nextAction, queueLimitsFromEnv } from '@/lib/queue';
+import { withSpokenLine } from '@/prompts/video-scripts';
 import { createServiceSupabase } from '@/lib/supabase/server';
 
 // Até 50 despachos sequenciais com chamadas externas por ciclo.
@@ -175,10 +177,21 @@ export async function GET(req: Request) {
           .eq('id', job.id).eq('status', 'ready')
           .select('id');
         if (!claimed?.length) continue;
+        // Fala dedicada do roteiro vira voz: acoplada ao movimento só quando o
+        // lote pediu som e o tier realmente gera áudio.
+        let motionPrompt = script.motion_prompt;
+        if (script.speech && batch.generate_audio && videoEngineOf(batch.video_engine).supportsAudio) {
+          const personaRegion = PersonaSchema.safeParse(batch.models.persona);
+          motionPrompt = withSpokenLine(
+            script.motion_prompt,
+            script.speech,
+            personaRegion.success ? personaRegion.data.region : 'br',
+          );
+        }
         const { requestId } = await generateVideo(cfg, {
           engineId: batch.video_engine,
           imageUrl: job.composed_image_url!,
-          prompt: script.motion_prompt,
+          prompt: motionPrompt,
           durationSeconds: batch.duration_seconds,
           aspectRatio: batch.aspect_ratio,
           resolution: batch.resolution,

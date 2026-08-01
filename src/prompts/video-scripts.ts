@@ -1,10 +1,24 @@
-import type { Persona } from '@/types';
+import type { Persona, Region } from '@/types';
 
 export const scriptsSystemPrompt = `Você roteiriza vídeos curtos de TikTok Shop estrelados por uma creator virtual.
-Responda SOMENTE com JSON: {"scripts":[{"title","hook","scene_description","motion_prompt"}]}.
+Responda SOMENTE com JSON: {"scripts":[{"title","hook","scene_description","motion_prompt","speech"}]}.
 "scene_description": em inglês, descreve UMA imagem estática (a creator com o produto, cenário, enquadramento vertical 9:16, estilo foto de celular) — será usada para compor a imagem base.
-"motion_prompt": em inglês, descreve o movimento a partir dessa imagem (gestos, expressão, câmera handheld) para um clipe curto.
+"motion_prompt": em inglês, descreve o movimento a partir dessa imagem (gestos, expressão, câmera handheld) para um clipe curto. NÃO inclua falas nem frases entre aspas aqui.
+"speech": a fala exata que a creator diz olhando para a câmera, no idioma da persona — curta, natural, vendedora. Se o pedido disser que o vídeo não terá fala, omita a chave.
 "title" e "hook": no idioma da persona. Varie ângulos de venda entre os roteiros (unboxing, prova, antes/depois, 3 formas de usar, review sincera...). Nada de texto fora do JSON.`;
+
+/** Idioma falado por região da persona — usado para montar a instrução de voz. */
+const SPEECH_LANGUAGE: Record<Region, string> = {
+  br: 'Brazilian Portuguese',
+  us: 'American English',
+  us_latina: 'a natural mix of Spanish and English (Latina Spanglish)',
+  custom: 'Brazilian Portuguese',
+};
+
+/** Acopla a fala ao prompt de movimento no formato que gera voz sincronizada no Seedance. */
+export function withSpokenLine(motionPrompt: string, speech: string, region: Region): string {
+  return `${motionPrompt}. The creator looks directly at the camera and says in ${SPEECH_LANGUAGE[region]}: "${speech.trim()}"`;
+}
 
 export function scriptsUserPrompt(input: {
   persona: Persona; productTitle: string; productDescription: string; count: number; durationSeconds: number;
@@ -16,8 +30,8 @@ export function scriptsUserPrompt(input: {
     `Produto: ${input.productTitle} — ${input.productDescription}`,
     `Gere exatamente ${input.count} roteiros para clipes de ${input.durationSeconds} segundos.`,
     input.withSpeech
-      ? `IMPORTANTE — o vídeo terá áudio gerado por IA: cada "motion_prompt" DEVE terminar com a creator olhando para a câmera e FALANDO o gancho, com a frase exata entre aspas no idioma da persona. Exemplo de final de motion_prompt: she looks at the camera and says in Brazilian Portuguese: "gente, esse achado é surreal!". A fala precisa caber em ${input.durationSeconds} segundos (curta e natural).`
-      : '',
+      ? `IMPORTANTE — o vídeo terá voz gerada por IA: preencha a chave "speech" de cada roteiro com a fala exata da creator (no idioma da persona), curta o bastante para caber em ${input.durationSeconds} segundos. NÃO coloque a fala no motion_prompt.`
+      : 'Este vídeo NÃO terá fala: omita a chave "speech".',
     'Retorne apenas o JSON.',
   ].filter(Boolean).join('\n');
 }

@@ -32,14 +32,20 @@ describe('generatePersona', () => {
   });
 });
 
-describe('scriptsUserPrompt com fala', () => {
-  it('com withSpeech instrui a fala entre aspas no idioma da persona; sem, não menciona', async () => {
+describe('roteiros com fala dedicada', () => {
+  it('withSpeech pede a chave speech preenchida; sem fala, pede omissão', async () => {
     const { scriptsUserPrompt } = await import('@/prompts/video-scripts');
     const base = { persona, productTitle: 'Vestido', productDescription: 'midi', count: 2, durationSeconds: 5 };
-    const withSpeech = scriptsUserPrompt({ ...base, withSpeech: true });
-    expect(withSpeech).toMatch(/FALANDO o gancho/);
-    expect(withSpeech).toMatch(/Brazilian Portuguese/);
-    expect(scriptsUserPrompt(base)).not.toMatch(/FALANDO/);
+    expect(scriptsUserPrompt({ ...base, withSpeech: true })).toMatch(/preencha a chave "speech"/);
+    expect(scriptsUserPrompt(base)).toMatch(/omita a chave "speech"/);
+  });
+  it('withSpokenLine acopla a fala entre aspas no idioma da região', async () => {
+    const { withSpokenLine } = await import('@/prompts/video-scripts');
+    const out = withSpokenLine('she smiles and lifts the dress', 'gente, olha isso!', 'br');
+    expect(out).toContain('she smiles and lifts the dress');
+    expect(out).toContain('Brazilian Portuguese');
+    expect(out).toContain('"gente, olha isso!"');
+    expect(withSpokenLine('m', 'hey!', 'us')).toContain('American English');
   });
 });
 

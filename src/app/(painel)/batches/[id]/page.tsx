@@ -70,6 +70,11 @@ export default async function BatchReviewPage({ params }: { params: Promise<{ id
               <div className="d" style={{ fontStyle: 'italic', margin: '6px 0 8px' }}>
                 {script.hook}
               </div>
+              {script.speech && (
+                <div className="d" style={{ margin: '0 0 8px' }}>
+                  🗣 <b>&ldquo;{script.speech}&rdquo;</b>
+                </div>
+              )}
               <small className="d" style={{ display: 'block' }}>🖼 {script.scene_description}</small>
               <small className="d" style={{ display: 'block', marginTop: 4 }}>🎬 {script.motion_prompt}</small>
             </div>
