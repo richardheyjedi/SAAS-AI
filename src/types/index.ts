@@ -5,6 +5,9 @@ export const APP_NAME = 'AutoReelsAI';
 export const RegionSchema = z.enum(['br', 'us', 'us_latina', 'custom']);
 export type Region = z.infer<typeof RegionSchema>;
 
+export const GenderSchema = z.enum(['female', 'male']);
+export type Gender = z.infer<typeof GenderSchema>;
+
 export const PersonaSchema = z.object({
   name: z.string().min(1),
   age: z.number().int().min(18).max(65),

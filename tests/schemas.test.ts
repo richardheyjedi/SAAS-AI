@@ -32,6 +32,11 @@ describe('ModelGenerateBodySchema', () => {
   it('default de referenceUrls é lista vazia', () => {
     expect(ModelGenerateBodySchema.parse({ region: 'br' }).referenceUrls).toEqual([]);
   });
+  it('sexo: default feminino, aceita masculino, rejeita valor fora do enum', () => {
+    expect(ModelGenerateBodySchema.parse({ region: 'br' }).gender).toBe('female');
+    expect(ModelGenerateBodySchema.parse({ region: 'br', gender: 'male' }).gender).toBe('male');
+    expect(ModelGenerateBodySchema.safeParse({ region: 'br', gender: 'outro' }).success).toBe(false);
+  });
   it('aceita productId uuid opcional e rejeita id inválido', () => {
     expect(ModelGenerateBodySchema.parse({ region: 'br', productId: uuid }).productId).toBe(uuid);
     expect(ModelGenerateBodySchema.parse({ region: 'br' }).productId).toBeUndefined();

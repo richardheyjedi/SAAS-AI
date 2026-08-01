@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { PersonaSchema, ScriptListSchema, type Persona, type Region, type Script } from '@/types';
+import { PersonaSchema, ScriptListSchema, type Gender, type Persona, type Region, type Script } from '@/types';
 import { personaSystemPrompt, personaUserPrompt } from '@/prompts/persona';
 import { scriptsSystemPrompt, scriptsUserPrompt } from '@/prompts/video-scripts';
 import { muapiTextCaller } from './muapi-text';
@@ -49,7 +49,7 @@ async function callValidated<T>(
 }
 
 export function generatePersona(
-  input: { region: Region; customPrompt?: string; productContext?: string },
+  input: { region: Region; gender?: Gender; customPrompt?: string; productContext?: string },
   call: ModelCaller = defaultTextCaller(),
 ): Promise<Persona> {
   return callValidated(call, personaSystemPrompt, personaUserPrompt(input), (d) => PersonaSchema.parse(d));

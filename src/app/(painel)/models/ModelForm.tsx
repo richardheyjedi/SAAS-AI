@@ -8,9 +8,9 @@ import { imageCostUsd, modelRefsCostUsd } from '@/lib/cost';
 import { CharacterSheetGuide } from './CharacterSheetGuide';
 
 const REGIONS: { value: string; label: string }[] = [
-  { value: 'br', label: '🇧🇷 Brasileira' },
-  { value: 'us', label: '🇺🇸 Americana' },
-  { value: 'us_latina', label: '🇺🇸 US · Latina' },
+  { value: 'br', label: '🇧🇷 Brasil' },
+  { value: 'us', label: '🇺🇸 EUA' },
+  { value: 'us_latina', label: '🇺🇸 EUA · Latino(a)' },
   { value: 'custom', label: 'Personalizada' },
 ];
 
@@ -30,6 +30,7 @@ export function ModelForm({ products }: { products: ModelFormProduct[] }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
   const [region, setRegion] = useState('br');
+  const [gender, setGender] = useState<'female' | 'male'>('female');
   const [productId, setProductId] = useState('');
   const [customPrompt, setCustomPrompt] = useState('');
   const [engine, setEngine] = useState(DEFAULT_IMAGE_ENGINE);
@@ -91,6 +92,7 @@ export function ModelForm({ products }: { products: ModelFormProduct[] }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           region,
+          gender,
           customPrompt: customPrompt || undefined,
           imageEngine: engine,
           refCount,
@@ -163,6 +165,17 @@ export function ModelForm({ products }: { products: ModelFormProduct[] }) {
                   ))}
                 </select>
               </label>
+              <div className="lbl">
+                <span className="sub">Sexo da persona</span>
+                <div className="seg" role="group" aria-label="Sexo da persona">
+                  <button type="button" className={gender === 'female' ? 'on' : ''} onClick={() => setGender('female')}>
+                    ♀ Feminino
+                  </button>
+                  <button type="button" className={gender === 'male' ? 'on' : ''} onClick={() => setGender('male')}>
+                    ♂ Masculino
+                  </button>
+                </div>
+              </div>
               <label className="lbl">
                 <span className="sub">Produto relacionado (opcional — a persona nasce alinhada a ele)</span>
                 <select className="field" value={productId} onChange={(e) => setProductId(e.target.value)}>

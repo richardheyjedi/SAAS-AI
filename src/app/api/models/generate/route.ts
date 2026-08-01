@@ -14,7 +14,7 @@ export async function POST(req: Request) {
 
   const parsed = ModelGenerateBodySchema.safeParse(await req.json());
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
-  const { region, customPrompt, refCount, imageEngine, referenceUrls, productId } = parsed.data;
+  const { region, gender, customPrompt, refCount, imageEngine, referenceUrls, productId } = parsed.data;
 
   // Produto vinculado: a persona nasce alinhada a ele (nicho, estilo de venda).
   let productContext: string | undefined;
@@ -28,7 +28,7 @@ export async function POST(req: Request) {
   // Falhas do Claude/MuAPI viram JSON legível no formulário, não um 500 opaco.
   let persona;
   try {
-    persona = await generatePersona({ region, customPrompt, productContext });
+    persona = await generatePersona({ region, gender, customPrompt, productContext });
   } catch (err) {
     return NextResponse.json(
       { error: `Falha ao gerar a persona: ${err instanceof Error ? err.message : String(err)}` },
