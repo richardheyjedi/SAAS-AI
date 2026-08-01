@@ -180,6 +180,18 @@
     position:absolute; top:3px; right:3px; width:18px; height:18px; border-radius:50%;
     border:0; cursor:pointer; background:rgba(10,10,16,.68); color:#fff; font-size:11px; line-height:18px; padding:0;
   }
+  .refgrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px}
+  .refgrid a{position:relative; display:block; aspect-ratio:3/4; border-radius:10px; overflow:hidden; border:1px solid var(--border)}
+  .refgrid a:focus-visible{outline:2px solid var(--cyan); outline-offset:1px}
+  .refgrid img{width:100%; height:100%; object-fit:cover; display:block}
+  .refgrid .tag{position:absolute; left:6px; bottom:6px; font-size:10px; font-weight:700; background:rgba(10,10,16,.68); color:#fff; border-radius:5px; padding:2px 7px}
+  .kv{display:grid; gap:2px; padding:11px 0; border-bottom:1px solid var(--border)}
+  .kv:last-child{border-bottom:0}
+  .kv .k{font-size:11px; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); font-weight:600}
+  .kv .v{font-size:13.5px; line-height:1.55}
+  .mono{font-family:ui-monospace,Consolas,monospace; font-size:12px; background:var(--surface2); border-radius:8px; padding:10px 12px; white-space:pre-wrap; word-break:break-word; display:block; margin-top:4px}
+  .card-link{display:block; color:inherit; text-decoration:none; cursor:pointer}
+  .card-link:focus-visible{outline:2px solid var(--cyan); outline-offset:1px; border-radius:12px 12px 0 0}
   details.guide{border-radius:10px; background:var(--surface2); padding:10px 12px}
   details.guide summary{cursor:pointer; font-weight:600; font-size:13px}
   details.guide ul{margin:10px 0 0; padding-left:18px; display:grid; gap:6px; font-size:12.5px; color:var(--muted)}

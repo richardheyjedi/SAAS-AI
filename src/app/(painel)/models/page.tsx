@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { PersonaSchema } from '@/types';
 import { ModelForm } from './ModelForm';
@@ -21,10 +22,12 @@ const REGION_LABEL: Record<string, string> = {
   custom: 'Personalizada',
 };
 
+// O status "approved" é o indicativo de disponibilidade: só modelo
+// aprovado aparece na criação de lote e pode gerar vídeos.
 const STATUS_INFO: Record<ModelRow['status'], { label: string; cls: string }> = {
-  generating_refs: { label: 'Gerando referências', cls: 'p-cyan' },
-  pending_approval: { label: 'Aguardando aprovação', cls: 'p-warn' },
-  approved: { label: 'Aprovada', cls: 'p-ok' },
+  generating_refs: { label: 'Gerando referências…', cls: 'p-cyan' },
+  pending_approval: { label: 'Revisar e aprovar', cls: 'p-warn' },
+  approved: { label: '✓ Pronta para vídeos', cls: 'p-ok' },
 };
 
 export default async function ModelsPage() {
@@ -64,32 +67,34 @@ export default async function ModelsPage() {
           const status = STATUS_INFO[m.status] ?? { label: m.status, cls: 'p-mut' };
           return (
             <div className="card" key={m.id}>
-              {(() => {
-                const refs = (m.reference_image_urls ?? []).slice(0, 4);
-                return (
-                  <div className={'avatar' + (refs.length ? '' : ' av-1')} style={{ position: 'relative' }}>
-                    {refs.length > 0 && (
-                      <div
-                        style={{
-                          position: 'absolute', inset: 0, display: 'grid', gap: 2,
-                          gridTemplateColumns: refs.length > 1 ? '1fr 1fr' : '1fr',
-                          gridTemplateRows: refs.length > 2 ? '1fr 1fr' : '1fr',
-                        }}
-                      >
-                        {refs.map((u) => (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img key={u} src={u} alt={m.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        ))}
-                      </div>
-                    )}
-                    <span className="pill">{REGION_LABEL[m.region] ?? m.region}</span>
-                  </div>
-                );
-              })()}
-              <div className="card-body">
-                <b>{m.name}</b>
-                <div className="d">{niche ? `nicho ${niche}` : '—'}</div>
-              </div>
+              <Link href={`/models/${m.id}`} className="card-link" title="Ver character sheet e detalhes">
+                {(() => {
+                  const refs = (m.reference_image_urls ?? []).slice(0, 4);
+                  return (
+                    <div className={'avatar' + (refs.length ? '' : ' av-1')} style={{ position: 'relative' }}>
+                      {refs.length > 0 && (
+                        <div
+                          style={{
+                            position: 'absolute', inset: 0, display: 'grid', gap: 2,
+                            gridTemplateColumns: refs.length > 1 ? '1fr 1fr' : '1fr',
+                            gridTemplateRows: refs.length > 2 ? '1fr 1fr' : '1fr',
+                          }}
+                        >
+                          {refs.map((u) => (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img key={u} src={u} alt={m.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          ))}
+                        </div>
+                      )}
+                      <span className="pill">{REGION_LABEL[m.region] ?? m.region}</span>
+                    </div>
+                  );
+                })()}
+                <div className="card-body">
+                  <b>{m.name}</b>
+                  <div className="d">{niche ? `nicho ${niche}` : '—'} · ver detalhes →</div>
+                </div>
+              </Link>
               <div className="card-foot">
                 <span>{refCount} refs</span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
