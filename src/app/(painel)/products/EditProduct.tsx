@@ -4,14 +4,22 @@ import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { UPLOAD_ACCEPT, uploadImages } from '@/lib/upload';
 
-export function ProductForm() {
+export type EditableProduct = {
+  id: string;
+  title: string;
+  description: string;
+  priceBrl: number | null;
+  imageUrls: string[];
+};
+
+export function EditProduct({ product }: { product: EditableProduct }) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [priceBrl, setPriceBrl] = useState('');
-  const [imageUrls, setImageUrls] = useState('');
+  const [title, setTitle] = useState(product.title);
+  const [description, setDescription] = useState(product.description);
+  const [priceBrl, setPriceBrl] = useState(product.priceBrl != null ? String(product.priceBrl) : '');
+  const [imageUrls, setImageUrls] = useState(product.imageUrls.join(', '));
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,29 +48,26 @@ export function ProductForm() {
         .split(',')
         .map((u) => u.trim())
         .filter(Boolean);
-      const res = await fetch('/api/products', {
-        method: 'POST',
+      const res = await fetch(`/api/products/${product.id}`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title,
           description,
-          priceBrl: priceBrl ? Number(priceBrl) : undefined,
+          priceBrl: priceBrl ? Number(priceBrl) : null,
           imageUrls: urls,
         }),
       });
       const body = await res.json();
       if (!res.ok) {
-        setError(typeof body?.error === 'string' ? body.error : 'Não foi possível cadastrar o produto.');
+        const flat = body?.error;
+        setError(typeof flat === 'string' ? flat : flat?.formErrors?.[0] ?? 'Não foi possível salvar.');
         return;
       }
       setOpen(false);
-      setTitle('');
-      setDescription('');
-      setPriceBrl('');
-      setImageUrls('');
       router.refresh();
     } catch {
-      setError('Não foi possível cadastrar o produto. Tente novamente.');
+      setError('Não foi possível salvar. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -70,17 +75,20 @@ export function ProductForm() {
 
   return (
     <>
-      <button className="new-card" onClick={() => setOpen(true)} type="button">
-        <span className="plus">+</span>
-        <b>Cadastrar produto</b>
-        <span>fotos, título e descrição</span>
+      <button
+        type="button"
+        className="btn"
+        style={{ padding: '3px 10px', fontSize: 12 }}
+        onClick={() => setOpen(true)}
+      >
+        ✎ Editar
       </button>
       {open && (
         <div
           className="overlay"
           role="dialog"
           aria-modal="true"
-          aria-label="Cadastrar produto"
+          aria-label={`Editar produto ${product.title}`}
           onClick={(e) => {
             if (e.target === e.currentTarget && !loading) setOpen(false);
           }}
@@ -90,7 +98,7 @@ export function ProductForm() {
         >
           <div className="modal">
             <div className="modal-head">
-              <b>Cadastrar produto</b>
+              <b>Editar produto</b>
               <button
                 type="button"
                 className="modal-close"
@@ -156,7 +164,7 @@ export function ProductForm() {
                   Cancelar
                 </button>
                 <button type="submit" className="btn primary" disabled={loading || uploading}>
-                  {loading ? 'Cadastrando…' : 'Cadastrar produto'}
+                  {loading ? 'Salvando…' : 'Salvar alterações'}
                 </button>
               </div>
             </form>

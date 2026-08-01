@@ -1,5 +1,6 @@
 import { createServerSupabase } from '@/lib/supabase/server';
 import { ProductForm } from './ProductForm';
+import { EditProduct } from './EditProduct';
 
 type ProductRow = {
   id: string;
@@ -51,6 +52,18 @@ export default async function ProductsPage() {
                 <div className="d">
                   R$ {price} · {photoCount} {photoCount === 1 ? 'foto' : 'fotos'}
                 </div>
+              </div>
+              <div className="card-foot">
+                <span></span>
+                <EditProduct
+                  product={{
+                    id: p.id,
+                    title: p.title,
+                    description: p.description ?? '',
+                    priceBrl: p.price_brl,
+                    imageUrls: p.image_urls ?? [],
+                  }}
+                />
               </div>
             </div>
           );

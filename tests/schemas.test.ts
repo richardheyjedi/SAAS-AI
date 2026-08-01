@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { ModelGenerateBodySchema } from '@/app/api/models/generate/schema';
 import { BatchBodySchema } from '@/app/api/batches/schema';
 import { NewRefsBodySchema } from '@/app/api/models/[id]/refs/schema';
+import { ProductUpdateSchema } from '@/app/api/products/[id]/schema';
 
 const uuid = '4c1f1e07-4a3e-4b6e-9d1a-3a2b1c0d9e8f';
 
@@ -76,6 +77,19 @@ describe('BatchBodySchema', () => {
   });
   it('rejeita tier fora do registro', () => {
     expect(BatchBodySchema.safeParse({ ...base, videoEngine: 'seedance-2-spicy-image-to-video' }).success).toBe(false);
+  });
+});
+
+describe('ProductUpdateSchema', () => {
+  it('aceita edição completa e preço nulo (remove o preço)', () => {
+    const p = ProductUpdateSchema.parse({ title: 'Vestido midi', priceBrl: null, imageUrls: ['https://cdn/a.jpg'] });
+    expect(p.priceBrl).toBeNull();
+    expect(p.description).toBe('');
+  });
+  it('rejeita título curto, preço negativo e URL inválida', () => {
+    expect(ProductUpdateSchema.safeParse({ title: 'a', priceBrl: null }).success).toBe(false);
+    expect(ProductUpdateSchema.safeParse({ title: 'Vestido', priceBrl: -5 }).success).toBe(false);
+    expect(ProductUpdateSchema.safeParse({ title: 'Vestido', priceBrl: null, imageUrls: ['x'] }).success).toBe(false);
   });
 });
 
