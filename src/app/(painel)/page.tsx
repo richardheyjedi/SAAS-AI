@@ -3,6 +3,7 @@ import { createServerSupabase } from '@/lib/supabase/server';
 import { getBalanceUsd, muApiConfigFromEnv } from '@/lib/muapi';
 import { queueLimitsFromEnv } from '@/lib/queue';
 import type { JobStatus } from '@/types';
+import { TopUpButton } from './TopUpButton';
 
 /** Abaixo disso o card de saldo entra em alerta — não cobre nem um lote pequeno. */
 const LOW_BALANCE_USD = 2;
@@ -134,9 +135,10 @@ export default async function DashboardPage() {
             {muapiBalance == null
               ? 'não foi possível consultar'
               : muapiBalance < LOW_BALANCE_USD
-                ? '⚠ saldo baixo — recarregue em muapi.ai/topup'
+                ? '⚠ saldo baixo — recarregue agora'
                 : 'créditos de imagem e vídeo'}
           </div>
+          <TopUpButton />
         </div>
         <div className="card stat">
           <div className="k">Taxa de falha (7d)</div>
