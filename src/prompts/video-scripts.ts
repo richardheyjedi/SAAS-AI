@@ -8,12 +8,16 @@ Responda SOMENTE com JSON: {"scripts":[{"title","hook","scene_description","moti
 
 export function scriptsUserPrompt(input: {
   persona: Persona; productTitle: string; productDescription: string; count: number; durationSeconds: number;
+  withSpeech?: boolean;
 }): string {
   const p = input.persona;
   return [
     `Persona: ${p.name}, ${p.age} anos, ${p.niche}. Aparência: ${p.appearance}. Personalidade: ${p.personality}. Fala: ${p.speech_style}.`,
     `Produto: ${input.productTitle} — ${input.productDescription}`,
     `Gere exatamente ${input.count} roteiros para clipes de ${input.durationSeconds} segundos.`,
+    input.withSpeech
+      ? `IMPORTANTE — o vídeo terá áudio gerado por IA: cada "motion_prompt" DEVE terminar com a creator olhando para a câmera e FALANDO o gancho, com a frase exata entre aspas no idioma da persona. Exemplo de final de motion_prompt: she looks at the camera and says in Brazilian Portuguese: "gente, esse achado é surreal!". A fala precisa caber em ${input.durationSeconds} segundos (curta e natural).`
+      : '',
     'Retorne apenas o JSON.',
-  ].join('\n');
+  ].filter(Boolean).join('\n');
 }

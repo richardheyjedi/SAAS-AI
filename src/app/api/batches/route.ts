@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { PersonaSchema } from '@/types';
 import { generateScripts } from '@/lib/claude';
 import { batchCostUsd } from '@/lib/cost';
+import { videoEngine as videoEngineOf } from '@/lib/engines';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { BatchBodySchema } from './schema';
 
@@ -26,11 +27,13 @@ export async function POST(req: Request) {
 
   const persona = PersonaSchema.parse(model.persona);
   // Falha do Claude vira JSON legível no formulário, não um 500 opaco.
+  // Fala só entra no roteiro quando o tier de vídeo realmente gera áudio.
+  const withSpeech = generateAudio && videoEngineOf(videoEngine).supportsAudio;
   let scripts;
   try {
     scripts = await generateScripts({
       persona, productTitle: product.title, productDescription: product.description,
-      count: videoCount, durationSeconds,
+      count: videoCount, durationSeconds, withSpeech,
     });
   } catch (err) {
     return NextResponse.json(

@@ -32,6 +32,17 @@ describe('generatePersona', () => {
   });
 });
 
+describe('scriptsUserPrompt com fala', () => {
+  it('com withSpeech instrui a fala entre aspas no idioma da persona; sem, não menciona', async () => {
+    const { scriptsUserPrompt } = await import('@/prompts/video-scripts');
+    const base = { persona, productTitle: 'Vestido', productDescription: 'midi', count: 2, durationSeconds: 5 };
+    const withSpeech = scriptsUserPrompt({ ...base, withSpeech: true });
+    expect(withSpeech).toMatch(/FALANDO o gancho/);
+    expect(withSpeech).toMatch(/Brazilian Portuguese/);
+    expect(scriptsUserPrompt(base)).not.toMatch(/FALANDO/);
+  });
+});
+
 describe('generateScripts', () => {
   it('retorna a lista validada', async () => {
     const script = {

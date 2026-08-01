@@ -56,7 +56,10 @@ export function generatePersona(
 }
 
 export async function generateScripts(
-  input: { persona: Persona; productTitle: string; productDescription: string; count: number; durationSeconds: number },
+  input: {
+    persona: Persona; productTitle: string; productDescription: string;
+    count: number; durationSeconds: number; withSpeech?: boolean;
+  },
   call: ModelCaller = defaultTextCaller(),
 ): Promise<Script[]> {
   const r = await callValidated(call, scriptsSystemPrompt, scriptsUserPrompt(input), (d) => ScriptListSchema.parse(d));

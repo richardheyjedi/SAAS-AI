@@ -213,6 +213,12 @@ export function BatchForm({ models, products }: { models: BatchModel[]; products
                     🔇 Sem som
                   </button>
                 </div>
+                {audio && (
+                  <span className="sub" style={{ fontSize: 11.5, maxWidth: 320 }}>
+                    💡 Com som ligado, os roteiros já incluem a <b>fala da modelo em português</b> (o gancho, dito
+                    olhando para a câmera). Você pode ajustar a frase em ✎ Editar roteiro antes de aprovar.
+                  </span>
+                )}
               </div>
             )}
             {videoEngine(vidEngine).supportsResolution && (
