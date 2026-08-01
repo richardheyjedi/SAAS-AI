@@ -114,132 +114,141 @@ export function ModelForm() {
     }
   }
 
-  if (!open) {
-    return (
+  return (
+    <>
       <button className="new-card" onClick={() => setOpen(true)} type="button">
         <span className="plus">+</span>
         <b>Criar modelo</b>
         <span>com suas fotos, por IA, ou os dois</span>
       </button>
-    );
-  }
-
-  return (
-    <div className="card" style={{ padding: 16, display: 'grid', gap: 12 }}>
-      <b>Criar modelo</b>
-      <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 12 }}>
-        <label style={{ display: 'grid', gap: 4 }}>
-          <span className="sub">Região</span>
-          <select
-            className="btn"
-            style={{ fontWeight: 400, width: '100%' }}
-            value={region}
-            onChange={(e) => setRegion(e.target.value)}
-          >
-            {REGIONS.map((r) => (
-              <option key={r.value} value={r.value}>
-                {r.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label style={{ display: 'grid', gap: 4 }}>
-          <span className="sub">Prompt personalizado (opcional)</span>
-          <textarea
-            className="btn"
-            style={{ fontWeight: 400, width: '100%', minHeight: 70, textAlign: 'left' }}
-            value={customPrompt}
-            onChange={(e) => setCustomPrompt(e.target.value)}
-            placeholder="Descreva a persona desejada…"
-          />
-        </label>
-
-        <div style={{ display: 'grid', gap: 6 }}>
-          <span className="sub">Suas referências ({refUrls.length}/{MAX_ATTACHED})</span>
-          {refUrls.length > 0 && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6 }}>
-              {refUrls.map((u, i) => (
-                <span key={u} style={{ position: 'relative', aspectRatio: '1', borderRadius: 8, overflow: 'hidden' }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={u} alt={`Referência ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  {i === 0 && (
-                    <span style={{ position: 'absolute', left: 2, bottom: 2, fontSize: 9, background: 'rgba(0,0,0,0.65)', color: '#fff', borderRadius: 4, padding: '1px 4px' }}>
-                      base
-                    </span>
-                  )}
-                  <button
-                    type="button"
-                    aria-label={`Remover referência ${i + 1}`}
-                    onClick={() => setRefUrls((prev) => prev.filter((x) => x !== u))}
-                    style={{ position: 'absolute', top: 2, right: 2, width: 18, height: 18, borderRadius: 9, border: 'none', cursor: 'pointer', background: 'rgba(0,0,0,0.65)', color: '#fff', fontSize: 11, lineHeight: '18px', padding: 0 }}
-                  >
-                    ×
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            multiple
-            style={{ display: 'none' }}
-            onChange={(e) => handleFiles(e.target.files)}
-          />
-          <button type="button" className="btn" disabled={uploading} onClick={() => fileInputRef.current?.click()}>
-            {uploading ? 'Enviando fotos…' : '+ Anexar fotos (JPG/PNG/WebP, até 8 MB)'}
-          </button>
-        </div>
-
-        <div style={{ display: 'grid', gap: 4 }}>
-          <span className="sub">Referências geradas por IA</span>
-          <div className="seg" role="group" aria-label="Quantidade de referências por IA" style={{ display: 'flex' }}>
-            {AI_REF_OPTIONS.map((n) => (
-              <button key={n} type="button" className={refCount === n ? 'on' : ''} onClick={() => setRefCount(n)}>
-                {n}
-              </button>
-            ))}
-          </div>
-          <span className="sub" style={{ fontSize: 11.5 }}>
-            {refCount === 0
-              ? 'Nenhuma — só as suas fotos (custo US$ 0,00)'
-              : `${refCount} imagem(ns) ≈ US$ ${modelRefsCostUsd(engine, refCount).toFixed(2).replace('.', ',')} (estimativa)`}
-          </span>
-        </div>
-
-        <label style={{ display: 'grid', gap: 4 }}>
-          <span className="sub">Motor de imagem</span>
-          <div style={{ display: 'flex', gap: 8 }}>
-            {IMAGE_ENGINES.map((e) => (
+      {open && (
+        <div
+          className="overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Criar modelo"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !loading && !uploading) setOpen(false);
+          }}
+        >
+          <div className="modal">
+            <div className="modal-head">
+              <b>Criar modelo</b>
               <button
-                key={e.id}
                 type="button"
-                className={'btn' + (engine === e.id ? ' primary' : '')}
-                style={{ flex: 1, fontWeight: 400 }}
-                onClick={() => setEngine(e.id)}
+                className="modal-close"
+                aria-label="Fechar"
+                onClick={() => setOpen(false)}
+                disabled={loading}
               >
-                {e.label}
-                <small style={{ display: 'block' }}>
-                  US$ {imageCostUsd(e.id).toFixed(2).replace('.', ',')}/imagem
-                </small>
+                ×
               </button>
-            ))}
+            </div>
+            <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 14 }}>
+              <label className="lbl">
+                <span className="sub">Região</span>
+                <select className="field" value={region} onChange={(e) => setRegion(e.target.value)}>
+                  {REGIONS.map((r) => (
+                    <option key={r.value} value={r.value}>
+                      {r.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="lbl">
+                <span className="sub">Prompt personalizado (opcional)</span>
+                <textarea
+                  className="field"
+                  value={customPrompt}
+                  onChange={(e) => setCustomPrompt(e.target.value)}
+                  placeholder="Descreva a persona desejada…"
+                />
+              </label>
+
+              <div className="lbl">
+                <span className="sub">
+                  Suas referências ({refUrls.length}/{MAX_ATTACHED})
+                </span>
+                {refUrls.length > 0 && (
+                  <div className="thumbgrid">
+                    {refUrls.map((u, i) => (
+                      <span key={u} className="ref">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={u} alt={`Referência ${i + 1}`} />
+                        {i === 0 && <span className="tag">base</span>}
+                        <button
+                          type="button"
+                          className="rm"
+                          aria-label={`Remover referência ${i + 1}`}
+                          onClick={() => setRefUrls((prev) => prev.filter((x) => x !== u))}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  multiple
+                  style={{ display: 'none' }}
+                  onChange={(e) => handleFiles(e.target.files)}
+                />
+                <button type="button" className="btn" disabled={uploading} onClick={() => fileInputRef.current?.click()}>
+                  {uploading ? 'Enviando fotos…' : '+ Anexar fotos (JPG/PNG/WebP, até 8 MB)'}
+                </button>
+              </div>
+
+              <div className="lbl">
+                <span className="sub">Referências geradas por IA</span>
+                <div className="seg" role="group" aria-label="Quantidade de referências por IA">
+                  {AI_REF_OPTIONS.map((n) => (
+                    <button key={n} type="button" className={refCount === n ? 'on' : ''} onClick={() => setRefCount(n)}>
+                      {n}
+                    </button>
+                  ))}
+                </div>
+                <span className="sub" style={{ fontSize: 11.5 }}>
+                  {refCount === 0
+                    ? 'Nenhuma — só as suas fotos (custo US$ 0,00)'
+                    : `${refCount} imagem(ns) ≈ US$ ${modelRefsCostUsd(engine, refCount).toFixed(2).replace('.', ',')} (estimativa)`}
+                </span>
+              </div>
+
+              <div className="lbl">
+                <span className="sub">Motor de imagem</span>
+                <div className="opt2">
+                  {IMAGE_ENGINES.map((e) => (
+                    <button
+                      key={e.id}
+                      type="button"
+                      className={'choice' + (engine === e.id ? ' sel' : '')}
+                      onClick={() => setEngine(e.id)}
+                    >
+                      <b>{e.label}</b>
+                      <small>US$ {imageCostUsd(e.id).toFixed(2).replace('.', ',')}/imagem</small>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <CharacterSheetGuide />
+
+              {error && <div className="alert">{error}</div>}
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                <button type="button" className="btn" onClick={() => setOpen(false)} disabled={loading}>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn primary" disabled={loading || uploading || totalRefs === 0}>
+                  {loading ? 'Criando modelo…' : 'Criar modelo'}
+                </button>
+              </div>
+            </form>
           </div>
-        </label>
-
-        <CharacterSheetGuide />
-
-        {error && <div className="pill p-err">{error}</div>}
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button type="submit" className="btn primary" disabled={loading || uploading || totalRefs === 0}>
-            {loading ? 'Criando modelo…' : 'Criar modelo'}
-          </button>
-          <button type="button" className="btn" onClick={() => setOpen(false)} disabled={loading}>
-            Cancelar
-          </button>
         </div>
-      </form>
-    </div>
+      )}
+    </>
   );
 }

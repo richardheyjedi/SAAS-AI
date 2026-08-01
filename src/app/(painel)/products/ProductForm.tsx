@@ -50,73 +50,87 @@ export function ProductForm() {
     }
   }
 
-  if (!open) {
-    return (
+  return (
+    <>
       <button className="new-card" onClick={() => setOpen(true)} type="button">
         <span className="plus">+</span>
         <b>Cadastrar produto</b>
         <span>fotos, título e descrição</span>
       </button>
-    );
-  }
-
-  return (
-    <div className="card" style={{ padding: 16, display: 'grid', gap: 10 }}>
-      <b>Cadastrar produto</b>
-      <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 10 }}>
-        <label style={{ display: 'grid', gap: 4 }}>
-          <span className="sub">Título</span>
-          <input
-            className="btn"
-            style={{ fontWeight: 400, width: '100%' }}
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-          />
-        </label>
-        <label style={{ display: 'grid', gap: 4 }}>
-          <span className="sub">Descrição</span>
-          <textarea
-            className="btn"
-            style={{ fontWeight: 400, width: '100%', minHeight: 60, textAlign: 'left' }}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
-        </label>
-        <label style={{ display: 'grid', gap: 4 }}>
-          <span className="sub">Preço (R$)</span>
-          <input
-            type="number"
-            step="0.01"
-            className="btn"
-            style={{ fontWeight: 400, width: '100%' }}
-            value={priceBrl}
-            onChange={(e) => setPriceBrl(e.target.value)}
-          />
-        </label>
-        <label style={{ display: 'grid', gap: 4 }}>
-          <span className="sub">URLs das fotos (separadas por vírgula)</span>
-          <textarea
-            className="btn"
-            style={{ fontWeight: 400, width: '100%', minHeight: 60, textAlign: 'left' }}
-            value={imageUrls}
-            onChange={(e) => setImageUrls(e.target.value)}
-            placeholder="https://…, https://…"
-          />
-          <span className="sub" style={{ fontSize: 11.5 }}>
-            cole URLs públicas das fotos do produto
-          </span>
-        </label>
-        {error && <div className="pill p-err">{error}</div>}
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button type="submit" className="btn primary" disabled={loading}>
-            {loading ? 'Cadastrando…' : 'Cadastrar produto'}
-          </button>
-          <button type="button" className="btn" onClick={() => setOpen(false)} disabled={loading}>
-            Cancelar
-          </button>
+      {open && (
+        <div
+          className="overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Cadastrar produto"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !loading) setOpen(false);
+          }}
+        >
+          <div className="modal">
+            <div className="modal-head">
+              <b>Cadastrar produto</b>
+              <button
+                type="button"
+                className="modal-close"
+                aria-label="Fechar"
+                onClick={() => setOpen(false)}
+                disabled={loading}
+              >
+                ×
+              </button>
+            </div>
+            <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 14 }}>
+              <label className="lbl">
+                <span className="sub">Título</span>
+                <input className="field" value={title} onChange={(e) => setTitle(e.target.value)} required />
+              </label>
+              <label className="lbl">
+                <span className="sub">Descrição</span>
+                <textarea
+                  className="field"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="O que é, material, diferenciais…"
+                />
+              </label>
+              <label className="lbl">
+                <span className="sub">Preço (R$)</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  className="field"
+                  value={priceBrl}
+                  onChange={(e) => setPriceBrl(e.target.value)}
+                  placeholder="99,90"
+                />
+              </label>
+              <label className="lbl">
+                <span className="sub">URLs das fotos (separadas por vírgula)</span>
+                <textarea
+                  className="field"
+                  value={imageUrls}
+                  onChange={(e) => setImageUrls(e.target.value)}
+                  placeholder="https://…, https://…"
+                />
+                <span className="sub" style={{ fontSize: 11.5 }}>
+                  Cole URLs públicas das fotos do produto — a 1ª é usada na composição com a modelo.
+                </span>
+              </label>
+              {error && <div className="alert">{error}</div>}
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                <button type="button" className="btn" onClick={() => setOpen(false)} disabled={loading}>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn primary" disabled={loading}>
+                  {loading ? 'Cadastrando…' : 'Cadastrar produto'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
-      </form>
-    </div>
+      )}
+    </>
   );
 }

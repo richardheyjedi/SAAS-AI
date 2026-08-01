@@ -2,11 +2,9 @@
 // Sem hooks: usável tanto no formulário (client) quanto no empty state (server).
 export function CharacterSheetGuide({ startOpen = false }: { startOpen?: boolean }) {
   return (
-    <details open={startOpen} style={{ borderRadius: 10, background: 'var(--surface2, rgba(255,255,255,0.04))', padding: '10px 12px' }}>
-      <summary style={{ cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>
-        📸 Como montar um character sheet consistente
-      </summary>
-      <ul className="sub" style={{ margin: '10px 0 0', paddingLeft: 18, display: 'grid', gap: 6, fontSize: 12.5 }}>
+    <details className="guide" open={startOpen}>
+      <summary>📸 Como montar um character sheet consistente</summary>
+      <ul>
         <li>Use <b>3 a 5 fotos da MESMA pessoa</b> — misturar pessoas quebra a consistência.</li>
         <li>Inclua: <b>rosto de frente bem nítido</b>, <b>perfil ou 3/4</b> e <b>corpo inteiro</b>.</li>
         <li><b>Mesma aparência em todas</b>: cabelo, maquiagem e roupa iguais entre as fotos.</li>

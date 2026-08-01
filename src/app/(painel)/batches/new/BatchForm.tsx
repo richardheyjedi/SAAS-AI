@@ -229,7 +229,7 @@ export function BatchForm({ models, products }: { models: BatchModel[]; products
           <span className="usd">{formatUsd(total)}</span>
           <span className="brl">≈ {formatBrl(totalBrl)}</span>
         </div>
-        {error && <div className="pill p-err" style={{ marginTop: 10 }}>{error}</div>}
+        {error && <div className="alert" style={{ marginTop: 10 }}>{error}</div>}
         <button
           type="button"
           className="btn primary"

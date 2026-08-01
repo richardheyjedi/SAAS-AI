@@ -28,7 +28,7 @@ export function ApproveButton({ batchId, videoCount }: { batchId: string; videoC
 
   return (
     <div style={{ display: 'grid', gap: 8 }}>
-      {error && <div className="pill p-err">{error}</div>}
+      {error && <div className="alert">{error}</div>}
       <button type="button" className="btn primary" onClick={handleApprove} disabled={loading}>
         {loading ? 'Aprovando…' : `Aprovar e gerar ${videoCount} vídeos`}
       </button>
