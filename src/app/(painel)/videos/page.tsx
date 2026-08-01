@@ -9,6 +9,7 @@ type BatchInfo = {
 
 type JobRow = {
   id: string;
+  batch_id: string | null;
   script: unknown;
   video_url: string | null;
   composed_image_url: string | null;
@@ -16,6 +17,9 @@ type JobRow = {
   cost_usd: number | null;
   error: string | null;
   retry_count: number;
+  created_at: string;
+  dispatched_at: string | null;
+  completed_at: string | null;
   video_batches: BatchInfo | BatchInfo[] | null;
 };
 
@@ -28,13 +32,34 @@ function formatUsd(v: number): string {
   return 'US$ ' + v.toFixed(2).replace('.', ',');
 }
 
+function formatDuration(ms: number): string {
+  const s = Math.round(ms / 1000);
+  if (s < 60) return `${s}s`;
+  const min = Math.floor(s / 60);
+  const rest = s % 60;
+  if (min < 60) return rest > 0 ? `${min}min ${rest}s` : `${min}min`;
+  const h = Math.floor(min / 60);
+  return `${h}h ${min % 60}min`;
+}
+
+/** Média (despacho→entrega) e janela total (1º despacho→última entrega) dos vídeos prontos do grupo. */
+function groupTimings(jobs: JobRow[]): { avgMs: number; totalMs: number; sample: number } | null {
+  const done = jobs.filter((j) => j.status === 'completed' && j.dispatched_at && j.completed_at);
+  if (done.length === 0) return null;
+  const durations = done.map((j) => new Date(j.completed_at!).getTime() - new Date(j.dispatched_at!).getTime());
+  const avgMs = durations.reduce((a, b) => a + b, 0) / durations.length;
+  const firstDispatch = Math.min(...done.map((j) => new Date(j.dispatched_at!).getTime()));
+  const lastDone = Math.max(...done.map((j) => new Date(j.completed_at!).getTime()));
+  return { avgMs, totalMs: lastDone - firstDispatch, sample: done.length };
+}
+
 export default async function VideosPage() {
   let jobs: JobRow[] = [];
   try {
     const supabase = await createServerSupabase();
     const { data } = await supabase
       .from('video_jobs')
-      .select('id,script,video_url,composed_image_url,status,cost_usd,error,retry_count,video_batches(models(name),products(title))')
+      .select('id,batch_id,script,video_url,composed_image_url,status,cost_usd,error,retry_count,created_at,dispatched_at,completed_at,video_batches(models(name),products(title))')
       .order('created_at', { ascending: false });
     jobs = (data as unknown as JobRow[]) ?? [];
   } catch {
@@ -44,6 +69,20 @@ export default async function VideosPage() {
   const readyCount = jobs.filter((j) => j.status === 'completed').length;
   const generatingCount = jobs.filter((j) => j.status === 'generating' || j.status === 'composing').length;
   const failedCount = jobs.filter((j) => j.status === 'failed').length;
+  const overall = groupTimings(jobs);
+
+  // Agrupa por lote (modelo + produto) preservando a ordem dos mais recentes.
+  const groups: { key: string; jobs: JobRow[] }[] = [];
+  const byBatch = new Map<string, JobRow[]>();
+  for (const job of jobs) {
+    const key = job.batch_id ?? 'sem-lote';
+    if (!byBatch.has(key)) {
+      const list: JobRow[] = [];
+      byBatch.set(key, list);
+      groups.push({ key, jobs: list });
+    }
+    byBatch.get(key)!.push(job);
+  }
 
   return (
     <section className="screen on">
@@ -82,21 +121,49 @@ export default async function VideosPage() {
         <span className="pill p-err">
           <i></i>Falhou · {failedCount}
         </span>
+        {overall && (
+          <span className="pill p-mut" title="Média do despacho à entrega, considerando todos os vídeos prontos">
+            ⏱ média geral: {formatDuration(overall.avgMs)}/vídeo
+          </span>
+        )}
       </div>
       {jobs.length === 0 ? (
         <div className="card" style={{ padding: 18 }}>
           Nenhum vídeo ainda.
         </div>
       ) : (
-        <div className="vidgrid">
-          {jobs.map((job) => {
-            const parsed = ScriptSchema.safeParse(job.script);
-            const title = parsed.success ? parsed.data.title : 'Sem título';
-            const batchInfo = one(job.video_batches);
-            const model = batchInfo ? one(batchInfo.models) : null;
-            const product = batchInfo ? one(batchInfo.products) : null;
+        groups.map((group) => {
+          const first = group.jobs[0];
+          const batchInfo = one(first.video_batches);
+          const model = batchInfo ? one(batchInfo.models) : null;
+          const product = batchInfo ? one(batchInfo.products) : null;
+          const timings = groupTimings(group.jobs);
+          const doneInGroup = group.jobs.filter((j) => j.status === 'completed').length;
 
-            return (
+          return (
+            <div key={group.key} style={{ marginBottom: 26 }}>
+              <h2 style={{ marginTop: 0 }}>
+                {model?.name ?? 'Modelo'} · {product?.title ?? 'Produto'}
+              </h2>
+              <div className="filters" style={{ marginBottom: 10 }}>
+                <span className="pill p-mut">{group.jobs.length} vídeos · {doneInGroup} prontos</span>
+                {timings && (
+                  <>
+                    <span className="pill p-mut" title={`Média do despacho à entrega (${timings.sample} vídeo(s) pronto(s))`}>
+                      ⏱ {formatDuration(timings.avgMs)}/vídeo
+                    </span>
+                    <span className="pill p-mut" title="Do 1º despacho do lote até a última entrega">
+                      🏁 total do lote: {formatDuration(timings.totalMs)}
+                    </span>
+                  </>
+                )}
+              </div>
+              <div className="vidgrid">
+                {group.jobs.map((job) => {
+                  const parsed = ScriptSchema.safeParse(job.script);
+                  const title = parsed.success ? parsed.data.title : 'Sem título';
+
+                  return (
               <div className="card vid" key={job.id}>
                 {job.status === 'completed' && job.video_url ? (
                   <div className="thumb">
@@ -123,15 +190,17 @@ export default async function VideosPage() {
                 )}
                 <div className="card-body">
                   <b>{title}</b>
-                  <div className="d">
-                    {model?.name ?? '—'} · {product?.title ?? '—'}
-                  </div>
                   {job.status === 'failed' && (
                     <div className="d">
                       {job.error ?? 'Erro desconhecido'} · tentativa {job.retry_count}/3
                     </div>
                   )}
-                  {job.cost_usd != null && job.cost_usd > 0 && <div className="d">{formatUsd(job.cost_usd)}</div>}
+                  <div className="d">
+                    {job.cost_usd != null && job.cost_usd > 0 ? formatUsd(job.cost_usd) : ''}
+                    {job.status === 'completed' && job.dispatched_at && job.completed_at
+                      ? `${job.cost_usd ? ' · ' : ''}⏱ ${formatDuration(new Date(job.completed_at).getTime() - new Date(job.dispatched_at).getTime())}`
+                      : ''}
+                  </div>
                   {job.status === 'completed' && job.video_url && (
                     <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
                       <a href={job.video_url} download className="btn" style={{ padding: '4px 10px', fontSize: 12 }}>
@@ -146,9 +215,12 @@ export default async function VideosPage() {
                   )}
                 </div>
               </div>
-            );
-          })}
-        </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })
       )}
     </section>
   );
