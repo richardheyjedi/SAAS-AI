@@ -25,10 +25,19 @@ export async function POST(req: Request) {
   if (model.status !== 'approved') return NextResponse.json({ error: 'Modelo ainda não aprovado' }, { status: 409 });
 
   const persona = PersonaSchema.parse(model.persona);
-  const scripts = await generateScripts({
-    persona, productTitle: product.title, productDescription: product.description,
-    count: videoCount, durationSeconds,
-  });
+  // Falha do Claude vira JSON legível no formulário, não um 500 opaco.
+  let scripts;
+  try {
+    scripts = await generateScripts({
+      persona, productTitle: product.title, productDescription: product.description,
+      count: videoCount, durationSeconds,
+    });
+  } catch (err) {
+    return NextResponse.json(
+      { error: `Falha ao gerar os roteiros: ${err instanceof Error ? err.message : String(err)}` },
+      { status: 502 },
+    );
+  }
 
   // A quantidade real de roteiros devolvidos pelo Claude é a fonte de verdade:
   // se vier diferente do pedido, o lote é gravado com o que existe de fato.

@@ -16,7 +16,16 @@ export async function POST(req: Request) {
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   const { region, customPrompt, refCount, imageEngine, referenceUrls } = parsed.data;
 
-  const persona = await generatePersona({ region, customPrompt });
+  // Falhas do Claude/MuAPI viram JSON legível no formulário, não um 500 opaco.
+  let persona;
+  try {
+    persona = await generatePersona({ region, customPrompt });
+  } catch (err) {
+    return NextResponse.json(
+      { error: `Falha ao gerar a persona: ${err instanceof Error ? err.message : String(err)}` },
+      { status: 502 },
+    );
+  }
   const { data: model, error } = await supabase
     .from('models')
     .insert({
@@ -31,12 +40,19 @@ export async function POST(req: Request) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   const cfg = muApiConfigFromEnv();
-  for (let i = 0; i < refCount; i++) {
-    const { requestId } = await generateImage(cfg, {
-      engineId: imageEngine,
-      prompt: `${persona.image_prompt} — reference shot ${i + 1}, same person, slightly different pose`,
-    });
-    await supabase.from('image_jobs').insert({ model_id: model.id, muapi_request_id: requestId });
+  try {
+    for (let i = 0; i < refCount; i++) {
+      const { requestId } = await generateImage(cfg, {
+        engineId: imageEngine,
+        prompt: `${persona.image_prompt} — reference shot ${i + 1}, same person, slightly different pose`,
+      });
+      await supabase.from('image_jobs').insert({ model_id: model.id, muapi_request_id: requestId });
+    }
+  } catch (err) {
+    return NextResponse.json(
+      { error: `Falha ao gerar referências na MuAPI: ${err instanceof Error ? err.message : String(err)}` },
+      { status: 502 },
+    );
   }
   return NextResponse.json({ modelId: model.id }, { status: 201 });
 }

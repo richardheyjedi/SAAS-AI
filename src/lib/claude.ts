@@ -7,12 +7,17 @@ export type ModelCaller = (system: string, user: string) => Promise<string>;
 
 export const anthropicCaller: ModelCaller = async (system, user) => {
   const client = new Anthropic();
-  const msg = await client.messages.create({
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 32000,
-    system,
-    messages: [{ role: 'user', content: user }],
-  });
+  // Streaming obrigatório: com max_tokens alto o SDK recusa chamadas
+  // não-streaming ("Streaming is strongly recommended..."). O finalMessage()
+  // acumula o stream e devolve o mesmo shape do create().
+  const msg = await client.messages
+    .stream({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 32000,
+      system,
+      messages: [{ role: 'user', content: user }],
+    })
+    .finalMessage();
   const block = msg.content.find((b) => b.type === 'text');
   if (!block || block.type !== 'text') throw new Error('Resposta do Claude sem texto');
   return block.text;
