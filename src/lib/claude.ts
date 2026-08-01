@@ -2,8 +2,14 @@ import Anthropic from '@anthropic-ai/sdk';
 import { PersonaSchema, ScriptListSchema, type Persona, type Region, type Script } from '@/types';
 import { personaSystemPrompt, personaUserPrompt } from '@/prompts/persona';
 import { scriptsSystemPrompt, scriptsUserPrompt } from '@/prompts/video-scripts';
+import { muapiTextCaller } from './muapi-text';
 
 export type ModelCaller = (system: string, user: string) => Promise<string>;
+
+/** Provedor de texto escolhido por env: TEXT_PROVIDER=muapi usa o gpt-5 da MuAPI; default Anthropic. */
+export function defaultTextCaller(): ModelCaller {
+  return process.env.TEXT_PROVIDER === 'muapi' ? muapiTextCaller : anthropicCaller;
+}
 
 export const anthropicCaller: ModelCaller = async (system, user) => {
   const client = new Anthropic();
@@ -43,14 +49,14 @@ async function callValidated<T>(
 }
 
 export function generatePersona(
-  input: { region: Region; customPrompt?: string }, call: ModelCaller = anthropicCaller,
+  input: { region: Region; customPrompt?: string }, call: ModelCaller = defaultTextCaller(),
 ): Promise<Persona> {
   return callValidated(call, personaSystemPrompt, personaUserPrompt(input), (d) => PersonaSchema.parse(d));
 }
 
 export async function generateScripts(
   input: { persona: Persona; productTitle: string; productDescription: string; count: number; durationSeconds: number },
-  call: ModelCaller = anthropicCaller,
+  call: ModelCaller = defaultTextCaller(),
 ): Promise<Script[]> {
   const r = await callValidated(call, scriptsSystemPrompt, scriptsUserPrompt(input), (d) => ScriptListSchema.parse(d));
   return r.scripts;
