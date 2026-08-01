@@ -11,6 +11,7 @@ type JobRow = {
   id: string;
   script: unknown;
   video_url: string | null;
+  composed_image_url: string | null;
   status: JobStatus;
   cost_usd: number | null;
   error: string | null;
@@ -33,7 +34,7 @@ export default async function VideosPage() {
     const supabase = await createServerSupabase();
     const { data } = await supabase
       .from('video_jobs')
-      .select('id,script,video_url,status,cost_usd,error,retry_count,video_batches(models(name),products(title))')
+      .select('id,script,video_url,composed_image_url,status,cost_usd,error,retry_count,video_batches(models(name),products(title))')
       .order('created_at', { ascending: false });
     jobs = (data as unknown as JobRow[]) ?? [];
   } catch {
@@ -99,10 +100,24 @@ export default async function VideosPage() {
               <div className="card vid" key={job.id}>
                 {job.status === 'completed' && job.video_url ? (
                   <div className="thumb">
-                    <video controls src={job.video_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <video
+                      controls
+                      src={job.video_url}
+                      poster={job.composed_image_url ?? undefined}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
                   </div>
                 ) : (
                   <div className="thumb">
+                    {job.composed_image_url && (
+                      // Preview da composição modelo + produto enquanto o vídeo não chega.
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={job.composed_image_url}
+                        alt="Composição modelo + produto"
+                        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                    )}
                     <StatusPill status={job.status} />
                   </div>
                 )}
@@ -118,9 +133,16 @@ export default async function VideosPage() {
                   )}
                   {job.cost_usd != null && job.cost_usd > 0 && <div className="d">{formatUsd(job.cost_usd)}</div>}
                   {job.status === 'completed' && job.video_url && (
-                    <a href={job.video_url} download className="btn" style={{ marginTop: 6, padding: '4px 10px', fontSize: 12 }}>
-                      Baixar
-                    </a>
+                    <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                      <a href={job.video_url} download className="btn" style={{ padding: '4px 10px', fontSize: 12 }}>
+                        Baixar
+                      </a>
+                      {job.composed_image_url && (
+                        <a href={job.composed_image_url} target="_blank" rel="noreferrer" className="btn" style={{ padding: '4px 10px', fontSize: 12 }} title="Abrir a imagem composta modelo + produto">
+                          Composição
+                        </a>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>

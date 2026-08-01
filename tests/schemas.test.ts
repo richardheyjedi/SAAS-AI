@@ -40,6 +40,25 @@ describe('BatchBodySchema', () => {
     const p = BatchBodySchema.parse(base);
     expect(p.imageEngine).toBe('gpt-image-2');
     expect(p.videoEngine).toBe('seedance-2-mini-image-to-video');
+    expect(p.generateAudio).toBe(true);
+    expect(p.highBitrate).toBe(false);
+    expect(p.aspectRatio).toBe('9:16');
+    expect(p.resolution).toBe('720p');
+  });
+  it('duração aceita o intervalo real da API (4 a 15s)', () => {
+    expect(BatchBodySchema.parse({ ...base, durationSeconds: 4 }).durationSeconds).toBe(4);
+    expect(BatchBodySchema.parse({ ...base, durationSeconds: 15 }).durationSeconds).toBe(15);
+    expect(BatchBodySchema.safeParse({ ...base, durationSeconds: 3 }).success).toBe(false);
+    expect(BatchBodySchema.safeParse({ ...base, durationSeconds: 16 }).success).toBe(false);
+  });
+  it('aceita controles de som, formato, resolução e bitrate; rejeita valores fora do enum', () => {
+    const p = BatchBodySchema.parse({ ...base, generateAudio: false, highBitrate: true, aspectRatio: '16:9', resolution: '480p' });
+    expect(p.generateAudio).toBe(false);
+    expect(p.highBitrate).toBe(true);
+    expect(p.aspectRatio).toBe('16:9');
+    expect(p.resolution).toBe('480p');
+    expect(BatchBodySchema.safeParse({ ...base, aspectRatio: '21:9' }).success).toBe(false);
+    expect(BatchBodySchema.safeParse({ ...base, resolution: '1080p' }).success).toBe(false);
   });
   it('aceita qualquer um dos 9 tiers de vídeo', () => {
     expect(BatchBodySchema.parse({ ...base, videoEngine: 'seedance-2-vip-image-to-video-4k' }).videoEngine)

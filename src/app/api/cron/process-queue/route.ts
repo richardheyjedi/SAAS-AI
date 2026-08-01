@@ -107,7 +107,7 @@ export async function GET(req: Request) {
 
   const { data: candidates, error: candidatesError } = await supabase
     .from('video_jobs')
-    .select('id,status,retry_count,composed_image_url,script,batch_id,video_batches(duration_seconds,image_engine,video_engine,model_id,product_id,models(persona,reference_image_urls),products(image_urls,title))')
+    .select('id,status,retry_count,composed_image_url,script,batch_id,video_batches(duration_seconds,image_engine,video_engine,generate_audio,high_bitrate,aspect_ratio,resolution,model_id,product_id,models(persona,reference_image_urls),products(image_urls,title))')
     .in('status', ['queued', 'ready', 'failed'])
     .order('created_at', { ascending: true })
     .limit(50);
@@ -135,6 +135,10 @@ export async function GET(req: Request) {
         duration_seconds: number;
         image_engine: string;
         video_engine: string;
+        generate_audio: boolean;
+        high_bitrate: boolean;
+        aspect_ratio: string;
+        resolution: string;
         models: { persona: unknown; reference_image_urls: string[] };
         products: { image_urls: string[]; title: string };
       };
@@ -160,6 +164,7 @@ export async function GET(req: Request) {
           engineId: batch.image_engine,
           prompt: `${persona.image_prompt}. ${script.scene_description}. The person must look identical to the reference photos.`,
           imageUrls: refs,
+          aspectRatio: batch.aspect_ratio,
         });
         await supabase.from('video_jobs')
           .update({ muapi_request_id: requestId })
@@ -175,6 +180,10 @@ export async function GET(req: Request) {
           imageUrl: job.composed_image_url!,
           prompt: script.motion_prompt,
           durationSeconds: batch.duration_seconds,
+          aspectRatio: batch.aspect_ratio,
+          resolution: batch.resolution,
+          generateAudio: batch.generate_audio,
+          highBitrate: batch.high_bitrate,
         });
         await supabase.from('video_jobs')
           .update({ muapi_request_id: requestId })

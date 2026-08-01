@@ -38,6 +38,15 @@ describe('registro de motores de vídeo', () => {
     expect(VIDEO_ENGINES.filter((e) => e.supportsResolution).map((e) => e.id))
       .toEqual(['seedance-2-mini-image-to-video']);
   });
+  it('capacidades por tier batem com os input_schema da API (som só no Mini; bitrate no Mini e VIPs)', () => {
+    expect(VIDEO_ENGINES.filter((e) => e.supportsAudio).map((e) => e.id))
+      .toEqual(['seedance-2-mini-image-to-video']);
+    expect(VIDEO_ENGINES.filter((e) => e.supportsHighBitrate).map((e) => e.id)).toEqual([
+      'seedance-2-mini-image-to-video',
+      'seedance-2-vip-image-to-video-fast',
+      'seedance-2-vip-image-to-video',
+    ]);
+  });
   it('path deriva do id e defaults existem no registro', () => {
     expect(videoEnginePath(videoEngine('seedance-2-i2v'))).toBe('/api/v1/seedance-2-i2v');
     expect(IMAGE_ENGINE_IDS).toContain(DEFAULT_IMAGE_ENGINE);

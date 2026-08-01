@@ -15,7 +15,7 @@ export async function POST(req: Request) {
 
   const parsed = BatchBodySchema.safeParse(await req.json());
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
-  const { modelId, productId, videoCount, durationSeconds, imageEngine, videoEngine } = parsed.data;
+  const { modelId, productId, videoCount, durationSeconds, imageEngine, videoEngine, generateAudio, highBitrate, aspectRatio, resolution } = parsed.data;
 
   const [{ data: model }, { data: product }] = await Promise.all([
     supabase.from('models').select('persona,status').eq('id', modelId).single(),
@@ -49,6 +49,8 @@ export async function POST(req: Request) {
       model_id: modelId, product_id: productId, video_count: actualCount,
       duration_seconds: durationSeconds, estimated_cost_usd: estimated,
       image_engine: imageEngine, video_engine: videoEngine,
+      generate_audio: generateAudio, high_bitrate: highBitrate,
+      aspect_ratio: aspectRatio, resolution,
     })
     .select('id').single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

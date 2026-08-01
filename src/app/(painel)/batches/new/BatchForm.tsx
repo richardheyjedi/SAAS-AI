@@ -3,7 +3,11 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { batchCostUsd, imageCostUsd, usdToBrl, videoCostUsd } from '@/lib/cost';
-import { DEFAULT_IMAGE_ENGINE, DEFAULT_VIDEO_ENGINE, IMAGE_ENGINES, VIDEO_ENGINES, imageEngine, videoEngine } from '@/lib/engines';
+import {
+  DEFAULT_IMAGE_ENGINE, DEFAULT_VIDEO_ENGINE, IMAGE_ENGINES, VIDEO_ENGINES,
+  VIDEO_ASPECT_RATIOS, VIDEO_DURATION_MAX, VIDEO_DURATION_MIN,
+  imageEngine, videoEngine,
+} from '@/lib/engines';
 
 export type BatchModel = {
   id: string;
@@ -35,9 +39,13 @@ export function BatchForm({ models, products }: { models: BatchModel[]; products
   const [modelId, setModelId] = useState<string | null>(models[0]?.id ?? null);
   const [productId, setProductId] = useState<string | null>(products[0]?.id ?? null);
   const [qty, setQty] = useState(10);
-  const [duration, setDuration] = useState<5 | 10>(5);
+  const [duration, setDuration] = useState(5);
   const [imgEngine, setImgEngine] = useState(DEFAULT_IMAGE_ENGINE);
   const [vidEngine, setVidEngine] = useState(DEFAULT_VIDEO_ENGINE);
+  const [audio, setAudio] = useState(true);
+  const [highBitrate, setHighBitrate] = useState(false);
+  const [aspect, setAspect] = useState<string>('9:16');
+  const [resolution, setResolution] = useState<'480p' | '720p'>('720p');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,7 +66,11 @@ export function BatchForm({ models, products }: { models: BatchModel[]; products
       const res = await fetch('/api/batches', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ modelId, productId, videoCount: qty, durationSeconds: duration, imageEngine: imgEngine, videoEngine: vidEngine }),
+        body: JSON.stringify({
+          modelId, productId, videoCount: qty, durationSeconds: duration,
+          imageEngine: imgEngine, videoEngine: vidEngine,
+          generateAudio: audio, highBitrate, aspectRatio: aspect, resolution,
+        }),
       });
       const body = await res.json();
       if (!res.ok) {
@@ -145,7 +157,7 @@ export function BatchForm({ models, products }: { models: BatchModel[]; products
         </div>
         <div className="card step">
           <div className="step-tag">Passo 3</div>
-          <h3>Quantidade e duração</h3>
+          <h3>Quantidade, duração e controles</h3>
           <div className="qty-row">
             <div className="qty-val">
               <span>{qty}</span> <small>vídeos</small>
@@ -158,15 +170,76 @@ export function BatchForm({ models, products }: { models: BatchModel[]; products
               aria-label="Quantidade de vídeos"
               onChange={(e) => setQty(Number(e.target.value))}
             />
-            <div className="seg" role="group" aria-label="Duração">
-              <button type="button" className={duration === 5 ? 'on' : ''} onClick={() => setDuration(5)}>
-                5 s
-              </button>
-              <button type="button" className={duration === 10 ? 'on' : ''} onClick={() => setDuration(10)}>
-                10 s
-              </button>
-            </div>
           </div>
+          <div className="qty-row" style={{ marginTop: 10 }}>
+            <div className="qty-val">
+              <span>{duration}</span> <small>seg/vídeo</small>
+            </div>
+            <input
+              type="range"
+              min={VIDEO_DURATION_MIN}
+              max={VIDEO_DURATION_MAX}
+              value={duration}
+              aria-label="Duração de cada vídeo em segundos"
+              onChange={(e) => setDuration(Number(e.target.value))}
+            />
+          </div>
+          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 14, alignItems: 'center' }}>
+            <div className="lbl">
+              <span className="sub">Formato</span>
+              <div className="seg" role="group" aria-label="Formato do vídeo">
+                {VIDEO_ASPECT_RATIOS.map((r) => (
+                  <button key={r} type="button" className={aspect === r ? 'on' : ''} onClick={() => setAspect(r)}>
+                    {r}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {videoEngine(vidEngine).supportsAudio && (
+              <div className="lbl">
+                <span className="sub">Som (gerado pela IA)</span>
+                <div className="seg" role="group" aria-label="Som do vídeo">
+                  <button type="button" className={audio ? 'on' : ''} onClick={() => setAudio(true)}>
+                    🔊 Com som
+                  </button>
+                  <button type="button" className={!audio ? 'on' : ''} onClick={() => setAudio(false)}>
+                    🔇 Sem som
+                  </button>
+                </div>
+              </div>
+            )}
+            {videoEngine(vidEngine).supportsResolution && (
+              <div className="lbl">
+                <span className="sub">Resolução</span>
+                <div className="seg" role="group" aria-label="Resolução">
+                  <button type="button" className={resolution === '720p' ? 'on' : ''} onClick={() => setResolution('720p')}>
+                    720p
+                  </button>
+                  <button type="button" className={resolution === '480p' ? 'on' : ''} onClick={() => setResolution('480p')}>
+                    480p
+                  </button>
+                </div>
+              </div>
+            )}
+            {videoEngine(vidEngine).supportsHighBitrate && (
+              <div className="lbl">
+                <span className="sub">Fidelidade visual</span>
+                <div className="seg" role="group" aria-label="Bitrate">
+                  <button type="button" className={!highBitrate ? 'on' : ''} onClick={() => setHighBitrate(false)}>
+                    Normal
+                  </button>
+                  <button type="button" className={highBitrate ? 'on' : ''} onClick={() => setHighBitrate(true)}>
+                    Alta (arquivo maior)
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+          {!videoEngine(vidEngine).supportsAudio && (
+            <div className="sub" style={{ fontSize: 11.5, marginTop: 10 }}>
+              O tier selecionado não expõe controle de som na API — para escolher com/sem som, use o Seedance 2.0 Mini.
+            </div>
+          )}
         </div>
         <div className="card step">
           <div className="step-tag">Passo 4</div>

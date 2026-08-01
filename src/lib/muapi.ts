@@ -39,32 +39,44 @@ async function submit(cfg: MuApiConfig, path: string, payload: Record<string, un
 
 export function generateImage(
   cfg: MuApiConfig,
-  input: { engineId: string; prompt: string; imageUrls?: string[] },
+  input: { engineId: string; prompt: string; imageUrls?: string[]; aspectRatio?: string },
 ) {
   const engine = imageEngine(input.engineId);
+  const aspect = input.aspectRatio ?? ASPECT_RATIO;
   if (input.imageUrls?.length) {
     return submit(cfg, engine.i2iPath, {
       prompt: input.prompt,
       images_list: input.imageUrls,
-      aspect_ratio: ASPECT_RATIO,
+      aspect_ratio: aspect,
     });
   }
-  return submit(cfg, engine.t2iPath, { prompt: input.prompt, aspect_ratio: ASPECT_RATIO });
+  return submit(cfg, engine.t2iPath, { prompt: input.prompt, aspect_ratio: aspect });
 }
 
 export function generateVideo(
   cfg: MuApiConfig,
-  input: { engineId: string; imageUrl: string; prompt: string; durationSeconds: number },
+  input: {
+    engineId: string;
+    imageUrl: string;
+    prompt: string;
+    durationSeconds: number;
+    aspectRatio?: string;
+    resolution?: string;
+    generateAudio?: boolean;
+    highBitrate?: boolean;
+  },
 ) {
   const engine = videoEngine(input.engineId);
   const payload: Record<string, unknown> = {
     prompt: input.prompt,
     images_list: [input.imageUrl],
     duration: input.durationSeconds,
-    aspect_ratio: ASPECT_RATIO,
+    aspect_ratio: input.aspectRatio ?? ASPECT_RATIO,
   };
-  // Campos que o tier não expõe não são enviados (só o Mini tem resolution).
-  if (engine.supportsResolution) payload.resolution = '720p';
+  // Campos que o tier não expõe não são enviados (capacidades no registro de engines).
+  if (engine.supportsResolution) payload.resolution = input.resolution ?? '720p';
+  if (engine.supportsAudio) payload.generate_audio = input.generateAudio ?? true;
+  if (engine.supportsHighBitrate && input.highBitrate) payload.high_bitrate = true;
   return submit(cfg, videoEnginePath(engine), payload);
 }
 

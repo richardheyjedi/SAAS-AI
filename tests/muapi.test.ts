@@ -48,7 +48,7 @@ describe('generateImage', () => {
 });
 
 describe('generateVideo', () => {
-  it('mini envia images_list, duration, resolution 720p e 9:16', async () => {
+  it('mini envia images_list, duration, resolution 720p, som ligado e 9:16 por padrão', async () => {
     await generateVideo(cfg, { engineId: 'seedance-2-mini-image-to-video', imageUrl: 'https://x/base.png', prompt: 'mexe', durationSeconds: 5 });
     const [url, init] = lastCall() as [string, RequestInit];
     expect(String(url)).toContain('/api/v1/seedance-2-mini-image-to-video');
@@ -56,14 +56,32 @@ describe('generateVideo', () => {
     expect(body.images_list).toEqual(['https://x/base.png']);
     expect(body.duration).toBe(5);
     expect(body.resolution).toBe('720p');
+    expect(body.generate_audio).toBe(true);
     expect(body.aspect_ratio).toBe('9:16');
   });
-  it('tiers sem resolution não enviam o campo e vão ao endpoint do tier', async () => {
-    await generateVideo(cfg, { engineId: 'seedance-2-vip-image-to-video', imageUrl: 'https://x/b.png', prompt: 'm', durationSeconds: 10 });
+  it('controles do lote chegam ao payload do mini: sem som, 480p, 16:9, alta fidelidade, 12s', async () => {
+    await generateVideo(cfg, {
+      engineId: 'seedance-2-mini-image-to-video', imageUrl: 'https://x/b.png', prompt: 'm',
+      durationSeconds: 12, generateAudio: false, resolution: '480p', aspectRatio: '16:9', highBitrate: true,
+    });
+    const body = JSON.parse(String((lastCall() as [string, RequestInit])[1].body));
+    expect(body.generate_audio).toBe(false);
+    expect(body.resolution).toBe('480p');
+    expect(body.aspect_ratio).toBe('16:9');
+    expect(body.high_bitrate).toBe(true);
+    expect(body.duration).toBe(12);
+  });
+  it('tiers sem suporte não recebem os campos: VIP tem high_bitrate mas não som/resolução', async () => {
+    await generateVideo(cfg, {
+      engineId: 'seedance-2-vip-image-to-video', imageUrl: 'https://x/b.png', prompt: 'm',
+      durationSeconds: 10, generateAudio: false, resolution: '480p', highBitrate: true,
+    });
     const [url, init] = lastCall() as [string, RequestInit];
     expect(String(url)).toContain('/api/v1/seedance-2-vip-image-to-video');
     const body = JSON.parse(String(init.body));
     expect(body.resolution).toBeUndefined();
+    expect(body.generate_audio).toBeUndefined();
+    expect(body.high_bitrate).toBe(true);
     expect(body.duration).toBe(10);
   });
 });
