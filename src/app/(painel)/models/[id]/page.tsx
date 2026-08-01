@@ -3,7 +3,8 @@ import { notFound } from 'next/navigation';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { PersonaSchema } from '@/types';
 import { imageEngine } from '@/lib/engines';
-import { approveModel } from '../actions';
+import { approveModel, promoteModelReference, removeModelReference } from '../actions';
+import { ManageRefs } from './ManageRefs';
 
 type ModelRow = {
   id: string;
@@ -32,10 +33,17 @@ const STATUS_INFO: Record<ModelRow['status'], { label: string; cls: string }> = 
 export default async function ModelDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   let model: ModelRow | null = null;
+  let pendingRefs = 0;
   try {
     const supabase = await createServerSupabase();
-    const { data } = await supabase.from('models').select('*').eq('id', id).single();
+    const [{ data }, { count }] = await Promise.all([
+      supabase.from('models').select('*').eq('id', id).single(),
+      supabase.from('image_jobs')
+        .select('id', { count: 'exact', head: true })
+        .eq('model_id', id).eq('status', 'generating'),
+    ]);
     model = data ?? null;
+    pendingRefs = count ?? 0;
   } catch {
     model = null;
   }
@@ -94,31 +102,54 @@ export default async function ModelDetailPage({ params }: { params: Promise<{ id
         </div>
       )}
 
-      <h2>Character sheet · {refs.length} {refs.length === 1 ? 'referência' : 'referências'}</h2>
+      <h2>
+        Character sheet · {refs.length} {refs.length === 1 ? 'referência' : 'referências'}
+        {pendingRefs > 0 && <span className="pill p-cyan" style={{ marginLeft: 8 }}><i></i>{pendingRefs} em geração…</span>}
+      </h2>
       <div className="card" style={{ padding: 16 }}>
         {refs.length === 0 ? (
           <span className="sub">
-            {model.status === 'generating_refs'
+            {pendingRefs > 0 || model.status === 'generating_refs'
               ? 'As referências estão sendo geradas — volte em alguns minutos.'
-              : 'Nenhuma referência neste modelo.'}
+              : 'Nenhuma referência neste modelo — adicione fotos ou gere por IA abaixo.'}
           </span>
         ) : (
           <>
             <div className="refgrid">
               {refs.map((u, i) => (
-                <a key={u} href={u} target="_blank" rel="noreferrer" title="Abrir em tamanho real">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={u} alt={`${model.name} — referência ${i + 1}`} />
-                  {i === 0 && <span className="tag">base da composição</span>}
-                </a>
+                <div key={u} style={{ display: 'grid', gap: 6 }}>
+                  <a href={u} target="_blank" rel="noreferrer" title="Abrir em tamanho real">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={u} alt={`${model.name} — referência ${i + 1}`} />
+                    {i === 0 && <span className="tag">base da composição</span>}
+                  </a>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    {i !== 0 && (
+                      <form action={promoteModelReference.bind(null, model.id, u)} style={{ flex: 1 }}>
+                        <button type="submit" className="btn" style={{ width: '100%', justifyContent: 'center', padding: '4px 8px', fontSize: 11.5 }} title="Usar esta foto como base da composição dos vídeos">
+                          ★ Tornar base
+                        </button>
+                      </form>
+                    )}
+                    {refs.length > 1 && (
+                      <form action={removeModelReference.bind(null, model.id, u)} style={{ flex: i === 0 ? 1 : undefined }}>
+                        <button type="submit" className="btn" style={{ width: '100%', justifyContent: 'center', padding: '4px 8px', fontSize: 11.5 }} title="Remover esta referência">
+                          × Remover
+                        </button>
+                      </form>
+                    )}
+                  </div>
+                </div>
               ))}
             </div>
             <div className="sub" style={{ fontSize: 11.5, marginTop: 10 }}>
-              Clique numa imagem para abrir em tamanho real. A 1ª referência é a base usada na composição dos vídeos.
+              Clique numa imagem para abrir em tamanho real. A ★ base é a foto usada na composição dos vídeos — a última referência não pode ser removida.
             </div>
           </>
         )}
       </div>
+
+      <ManageRefs modelId={model.id} engineId={model.image_engine} />
 
       <h2>Persona</h2>
       <div className="card" style={{ padding: '6px 16px' }}>

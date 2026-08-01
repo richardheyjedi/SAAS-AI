@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { ModelGenerateBodySchema } from '@/app/api/models/generate/schema';
 import { BatchBodySchema } from '@/app/api/batches/schema';
+import { NewRefsBodySchema } from '@/app/api/models/[id]/refs/schema';
 
 const uuid = '4c1f1e07-4a3e-4b6e-9d1a-3a2b1c0d9e8f';
 
@@ -46,5 +47,19 @@ describe('BatchBodySchema', () => {
   });
   it('rejeita tier fora do registro', () => {
     expect(BatchBodySchema.safeParse({ ...base, videoEngine: 'seedance-2-spicy-image-to-video' }).success).toBe(false);
+  });
+});
+
+describe('NewRefsBodySchema', () => {
+  it('defaults: 3 novas referências, ajuste opcional', () => {
+    const p = NewRefsBodySchema.parse({});
+    expect(p.count).toBe(3);
+    expect(p.adjustPrompt).toBeUndefined();
+  });
+  it('aceita ajuste e contagem 1-5; rejeita fora do intervalo', () => {
+    expect(NewRefsBodySchema.parse({ adjustPrompt: 'cabelo preso', count: 5 }).count).toBe(5);
+    expect(NewRefsBodySchema.safeParse({ count: 0 }).success).toBe(false);
+    expect(NewRefsBodySchema.safeParse({ count: 6 }).success).toBe(false);
+    expect(NewRefsBodySchema.safeParse({ adjustPrompt: 'x'.repeat(1001) }).success).toBe(false);
   });
 });

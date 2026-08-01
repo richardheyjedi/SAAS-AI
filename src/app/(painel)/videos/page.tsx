@@ -59,6 +59,17 @@ export default async function VideosPage() {
           — volume alto de posts idênticos pode ser sinalizado como spam.
         </span>
       </div>
+      <details className="guide" style={{ marginBottom: 14 }}>
+        <summary>🎬 Como funciona o fluxo e onde seus vídeos ficam armazenados</summary>
+        <ul>
+          <li><b>1. Roteiro</b> — ao criar o lote, a IA de texto escreve um roteiro por vídeo (título, gancho, cena e movimento).</li>
+          <li><b>2. Composição</b> — o motor de imagem junta a foto <b>base</b> da modelo com a 1ª foto do produto numa imagem vertical 9:16.</li>
+          <li><b>3. Animação</b> — o Seedance transforma essa imagem no clipe final. A fila processa sozinha, em etapas, a cada ciclo do cron.</li>
+          <li><b>4. Entrega</b> — o vídeo pronto aparece nesta tela com player e botão Baixar.</li>
+          <li><b>📦 Armazenamento:</b> os arquivos ficam na CDN da MuAPI, e os links têm <b>validade limitada (~30 dias)</b> — <b>baixe e guarde</b> os vídeos que quiser manter (o botão Baixar salva o MP4 no seu computador).</li>
+          <li>Estados possíveis de cada vídeo: Na fila → Compondo → Gerando → Pronto (ou Falhou, com nova tentativa automática até 3×).</li>
+        </ul>
+      </details>
       <div className="filters">
         <span className="pill p-mut">Todos · {jobs.length}</span>
         <span className="pill p-ok">
