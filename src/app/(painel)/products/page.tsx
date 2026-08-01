@@ -1,6 +1,7 @@
 import { createServerSupabase } from '@/lib/supabase/server';
 import { ProductForm } from './ProductForm';
 import { EditProduct } from './EditProduct';
+import { DeleteButton } from '@/app/components/DeleteButton';
 
 type ProductRow = {
   id: string;
@@ -54,7 +55,12 @@ export default async function ProductsPage() {
                 </div>
               </div>
               <div className="card-foot">
-                <span></span>
+                <DeleteButton
+                  url={`/api/products/${p.id}`}
+                  confirmMessage={`Excluir "${p.title}" apaga também os lotes e vídeos gerados com este produto (modelos vinculadas apenas perdem o vínculo). Continuar?`}
+                  label="🗑"
+                  small
+                />
                 <EditProduct
                   product={{
                     id: p.id,

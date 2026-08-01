@@ -5,6 +5,7 @@ import { PersonaSchema } from '@/types';
 import { imageEngine } from '@/lib/engines';
 import { approveModel, promoteModelReference, removeModelReference } from '../actions';
 import { ManageRefs } from './ManageRefs';
+import { DeleteButton } from '@/app/components/DeleteButton';
 
 type ModelRow = {
   id: string;
@@ -93,6 +94,12 @@ export default async function ModelDetailPage({ params }: { params: Promise<{ id
               Gerar vídeos com esta modelo →
             </Link>
           )}
+          <DeleteButton
+            url={`/api/models/${model.id}`}
+            confirmMessage={`Excluir a modelo "${model.name}" apaga também TODOS os lotes e vídeos gerados com ela. Essa ação não pode ser desfeita. Continuar?`}
+            label="🗑 Excluir modelo"
+            redirectTo="/models"
+          />
           <Link href="/models" className="btn">
             ← Modelos
           </Link>

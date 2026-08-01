@@ -1,6 +1,7 @@
 import { createServerSupabase } from '@/lib/supabase/server';
 import { ScriptSchema, type JobStatus } from '@/types';
 import { StatusPill } from '@/app/components/StatusPill';
+import { DeleteButton } from '@/app/components/DeleteButton';
 
 type BatchInfo = {
   models: { name: string } | { name: string }[] | null;
@@ -201,18 +202,26 @@ export default async function VideosPage() {
                       ? `${job.cost_usd ? ' · ' : ''}⏱ ${formatDuration(new Date(job.completed_at).getTime() - new Date(job.dispatched_at).getTime())}`
                       : ''}
                   </div>
-                  {job.status === 'completed' && job.video_url && (
-                    <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-                      <a href={job.video_url} download className="btn" style={{ padding: '4px 10px', fontSize: 12 }}>
-                        Baixar
-                      </a>
-                      {job.composed_image_url && (
-                        <a href={job.composed_image_url} target="_blank" rel="noreferrer" className="btn" style={{ padding: '4px 10px', fontSize: 12 }} title="Abrir a imagem composta modelo + produto">
-                          Composição
+                  <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
+                    {job.status === 'completed' && job.video_url && (
+                      <>
+                        <a href={job.video_url} download className="btn" style={{ padding: '4px 10px', fontSize: 12 }}>
+                          Baixar
                         </a>
-                      )}
-                    </div>
-                  )}
+                        {job.composed_image_url && (
+                          <a href={job.composed_image_url} target="_blank" rel="noreferrer" className="btn" style={{ padding: '4px 10px', fontSize: 12 }} title="Abrir a imagem composta modelo + produto">
+                            Composição
+                          </a>
+                        )}
+                      </>
+                    )}
+                    <DeleteButton
+                      url={`/api/jobs/${job.id}`}
+                      confirmMessage="Excluir este vídeo da plataforma? (Se já baixou o arquivo, ele continua no seu computador.)"
+                      label="🗑"
+                      small
+                    />
+                  </div>
                 </div>
               </div>
                   );
