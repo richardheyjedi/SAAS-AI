@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { ScriptSchema, STATUS_LABEL, type JobStatus } from '@/types';
 import { ApproveButton } from './ApproveButton';
+import { EditScript } from './EditScript';
 
 type BatchRow = {
   id: string;
@@ -62,12 +63,15 @@ export default async function BatchReviewPage({ params }: { params: Promise<{ id
           const script = parsed.data;
           return (
             <div className="card step" key={job.id}>
-              <h3>{script.title}</h3>
-              <div className="d" style={{ fontStyle: 'italic', marginBottom: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+                <h3 style={{ margin: 0 }}>{script.title}</h3>
+                <EditScript jobId={job.id} script={script} />
+              </div>
+              <div className="d" style={{ fontStyle: 'italic', margin: '6px 0 8px' }}>
                 {script.hook}
               </div>
-              <small className="d">{script.scene_description}</small>
-              <small className="d">{script.motion_prompt}</small>
+              <small className="d" style={{ display: 'block' }}>🖼 {script.scene_description}</small>
+              <small className="d" style={{ display: 'block', marginTop: 4 }}>🎬 {script.motion_prompt}</small>
             </div>
           );
         })}
