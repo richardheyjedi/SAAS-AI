@@ -3,6 +3,7 @@ import { PersonaSchema } from '@/types';
 import { generateScripts } from '@/lib/claude';
 import { batchCostUsd } from '@/lib/cost';
 import { videoEngine as videoEngineOf } from '@/lib/engines';
+import { getBalanceUsd, muApiConfigFromEnv } from '@/lib/muapi';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { BatchBodySchema } from './schema';
 
@@ -24,6 +25,21 @@ export async function POST(req: Request) {
   ]);
   if (!model || !product) return NextResponse.json({ error: 'Modelo ou produto não encontrado' }, { status: 404 });
   if (model.status !== 'approved') return NextResponse.json({ error: 'Modelo ainda não aprovado' }, { status: 409 });
+
+  // Bloqueio preventivo: recusa o lote se o saldo MuAPI não cobre a estimativa.
+  // Falha na consulta de saldo não bloqueia (o cron tolera 402 sem perder nada).
+  try {
+    const balance = await getBalanceUsd(muApiConfigFromEnv());
+    const projected = batchCostUsd(imageEngine, videoEngine, videoCount, durationSeconds);
+    if (balance < projected) {
+      return NextResponse.json(
+        {
+          error: `Saldo insuficiente na MuAPI: US$ ${balance.toFixed(2)} disponíveis, lote estimado em US$ ${projected.toFixed(2)}. Recarregue em muapi.ai/topup e tente de novo.`,
+        },
+        { status: 402 },
+      );
+    }
+  } catch { /* consulta de saldo indisponível: segue — o cron é resiliente a 402 */ }
 
   const persona = PersonaSchema.parse(model.persona);
   // Falha do Claude vira JSON legível no formulário, não um 500 opaco.

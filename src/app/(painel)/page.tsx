@@ -1,7 +1,11 @@
 import Link from 'next/link';
 import { createServerSupabase } from '@/lib/supabase/server';
+import { getBalanceUsd, muApiConfigFromEnv } from '@/lib/muapi';
 import { queueLimitsFromEnv } from '@/lib/queue';
 import type { JobStatus } from '@/types';
+
+/** Abaixo disso o card de saldo entra em alerta — não cobre nem um lote pequeno. */
+const LOW_BALANCE_USD = 2;
 
 type BatchRow = {
   id: string;
@@ -53,6 +57,12 @@ export default async function DashboardPage() {
   let videoJobsWeek: VideoJobRow[] = [];
   let queuedJobs: VideoJobRow[] = [];
   let recentBatches: BatchRow[] = [];
+  let muapiBalance: number | null = null;
+  try {
+    muapiBalance = await getBalanceUsd(muApiConfigFromEnv());
+  } catch {
+    muapiBalance = null;
+  }
 
   try {
     const supabase = await createServerSupabase();
@@ -114,6 +124,19 @@ export default async function DashboardPage() {
           <div className="k">Gasto hoje</div>
           <div className="v">{formatUsd(gastoHoje)}</div>
           <div className="d">estimado pela tabela de preços</div>
+        </div>
+        <div className="card stat">
+          <div className="k">Saldo MuAPI</div>
+          <div className="v" style={muapiBalance != null && muapiBalance < LOW_BALANCE_USD ? { color: 'var(--err)' } : undefined}>
+            {muapiBalance != null ? formatUsd(muapiBalance) : '—'}
+          </div>
+          <div className="d">
+            {muapiBalance == null
+              ? 'não foi possível consultar'
+              : muapiBalance < LOW_BALANCE_USD
+                ? '⚠ saldo baixo — recarregue em muapi.ai/topup'
+                : 'créditos de imagem e vídeo'}
+          </div>
         </div>
         <div className="card stat">
           <div className="k">Taxa de falha (7d)</div>

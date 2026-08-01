@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { PersonaSchema, ScriptSchema } from '@/types';
 import { imageCostUsd, videoCostUsd } from '@/lib/cost';
 import { videoEngine as videoEngineOf } from '@/lib/engines';
-import { generateImage, generateVideo, muApiConfigFromEnv } from '@/lib/muapi';
+import { generateImage, generateVideo, isInsufficientCredit, muApiConfigFromEnv } from '@/lib/muapi';
 import { dispatchAllowance, nextAction, queueLimitsFromEnv } from '@/lib/queue';
 import { withSpokenLine } from '@/prompts/video-scripts';
 import { createServiceSupabase } from '@/lib/supabase/server';
@@ -205,6 +205,15 @@ export async function GET(req: Request) {
       }
       dispatched += 1;
     } catch (err) {
+      // Sem crédito NÃO é falha do vídeo: devolve o job intacto à fila (sem
+      // queimar retry, sem contaminar o circuit breaker) e encerra o ciclo —
+      // nada mais passaria. Assim que houver saldo, tudo continua de onde parou.
+      if (isInsufficientCredit(err)) {
+        await supabase.from('video_jobs')
+          .update({ status: job.status, dispatched_at: null })
+          .eq('id', job.id);
+        break;
+      }
       await supabase.from('video_jobs')
         .update({ status: 'failed', error: String(err).slice(0, 500) })
         .eq('id', job.id);

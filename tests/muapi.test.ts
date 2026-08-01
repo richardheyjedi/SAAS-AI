@@ -86,6 +86,16 @@ describe('generateVideo', () => {
   });
 });
 
+describe('isInsufficientCredit', () => {
+  it('reconhece as variantes reais do erro de saldo e ignora outros erros', async () => {
+    const { isInsufficientCredit } = await import('@/lib/muapi');
+    expect(isInsufficientCredit(new Error('MuAPI 402: {"detail":"Insufficient credit balance"}'))).toBe(true);
+    expect(isInsufficientCredit('INSUFFICIENT_CREDITS')).toBe(true);
+    expect(isInsufficientCredit(new Error('MuAPI 500: boom'))).toBe(false);
+    expect(isInsufficientCredit(new Error('timeout'))).toBe(false);
+  });
+});
+
 describe('parseWebhook', () => {
   it('normaliza payload real de sucesso (id + outputs)', () => {
     const r = parseWebhook({

@@ -80,6 +80,24 @@ export function generateVideo(
   return submit(cfg, videoEnginePath(engine), payload);
 }
 
+/** Reconhece erro de saldo insuficiente da MuAPI (HTTP 402 / INSUFFICIENT_CREDITS). */
+export function isInsufficientCredit(err: unknown): boolean {
+  const s = String(err instanceof Error ? err.message : err);
+  return s.includes('INSUFFICIENT_CREDIT') || s.includes('MuAPI 402') || s.includes('Insufficient credit');
+}
+
+/** Saldo atual da conta MuAPI em USD. Lança em falha de rede/auth. */
+export async function getBalanceUsd(cfg: MuApiConfig): Promise<number> {
+  const res = await fetch(`${cfg.baseUrl}/api/v1/account/balance`, {
+    headers: { 'x-api-key': cfg.apiKey },
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (!res.ok) throw new Error(`MuAPI balance ${res.status}`);
+  const data = (await res.json()) as { balance?: number };
+  if (typeof data.balance !== 'number') throw new Error('MuAPI balance: resposta sem balance');
+  return data.balance;
+}
+
 // Payload real do webhook (docs/webhooks): { id, status, outputs?, error?, urls, ... }.
 // `request_id` mantido como fallback; campos extras são ignorados.
 export const WebhookPayloadSchema = z
