@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { kickQueue } from '@/lib/kick';
 import { createServerSupabase } from '@/lib/supabase/server';
 
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -10,5 +11,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   const { error } = await supabase.from('video_jobs').update({ status: 'queued' }).eq('batch_id', id).eq('status', 'draft');
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   await supabase.from('video_batches').update({ status: 'approved' }).eq('id', id);
+  // A composição começa em segundos, sem esperar o próximo ciclo do cron.
+  kickQueue();
   return NextResponse.json({ ok: true });
 }

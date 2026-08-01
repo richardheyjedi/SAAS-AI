@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { kickQueue } from '@/lib/kick';
 import { parseWebhook } from '@/lib/muapi';
 import { createServiceSupabase } from '@/lib/supabase/server';
 
@@ -83,6 +84,8 @@ export async function POST(req: Request) {
       await supabase.from('video_jobs').update({
         status: 'ready', composed_image_url: event.outputUrl, muapi_request_id: null,
       }).eq('id', videoJob.id);
+      // Imagem composta pronta: a animação é despachada em segundos, sem esperar o cron.
+      kickQueue();
     }
   } else if (!event.outputUrl) {
     // 'completed' sem output deixaria o job como "Pronto" sem vídeo para baixar.
