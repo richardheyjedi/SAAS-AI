@@ -3,6 +3,9 @@ import { kickQueue } from '@/lib/kick';
 import { getBalanceUsd, muApiConfigFromEnv } from '@/lib/muapi';
 import { createServerSupabase } from '@/lib/supabase/server';
 
+// O kick (waitUntil) só vive até o maxDuration DESTA rota.
+export const maxDuration = 300;
+
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createServerSupabase();

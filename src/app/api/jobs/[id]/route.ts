@@ -26,9 +26,14 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     .update({ script: parsed.data })
     .eq('id', id)
     .eq('status', 'draft');
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error('jobs PATCH:', error.message);
+    return NextResponse.json({ error: 'Não foi possível salvar o roteiro.' }, { status: 500 });
+  }
   return NextResponse.json({ ok: true });
 }
+
+const MAX_RETRIES = 3;
 
 /** Exclui um vídeo individual. Webhook tardio de um job excluído é ignorado com segurança. */
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -37,7 +42,24 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
 
+  const { data: job } = await supabase.from('video_jobs').select('batch_id').eq('id', id).maybeSingle();
   const { error } = await supabase.from('video_jobs').delete().eq('id', id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error('jobs DELETE:', error.message);
+    return NextResponse.json({ error: 'Não foi possível excluir o vídeo.' }, { status: 500 });
+  }
+
+  // Sem isto, apagar o último vídeo pendente deixaria o lote "Gerando" para sempre.
+  if (job?.batch_id) {
+    const { data: rest } = await supabase
+      .from('video_jobs').select('status,retry_count').eq('batch_id', job.batch_id);
+    const jobs = rest ?? [];
+    const pending = jobs.some((j) => j.status !== 'completed' && j.status !== 'failed');
+    const retryable = jobs.some((j) => j.status === 'failed' && j.retry_count < MAX_RETRIES);
+    if (!pending && !retryable) {
+      await supabase.from('video_batches')
+        .update({ status: 'done' }).eq('id', job.batch_id).eq('status', 'approved');
+    }
+  }
   return NextResponse.json({ ok: true });
 }

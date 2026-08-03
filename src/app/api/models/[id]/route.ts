@@ -15,11 +15,20 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   const batchIds = (batches ?? []).map((b) => b.id);
   if (batchIds.length > 0) {
     const { error: jobsErr } = await supabase.from('video_jobs').delete().in('batch_id', batchIds);
-    if (jobsErr) return NextResponse.json({ error: jobsErr.message }, { status: 500 });
+    if (jobsErr) {
+      console.error('models DELETE jobs:', jobsErr.message);
+      return NextResponse.json({ error: 'Não foi possível excluir os vídeos da modelo.' }, { status: 500 });
+    }
     const { error: batchErr } = await supabase.from('video_batches').delete().in('id', batchIds);
-    if (batchErr) return NextResponse.json({ error: batchErr.message }, { status: 500 });
+    if (batchErr) {
+      console.error('models DELETE batches:', batchErr.message);
+      return NextResponse.json({ error: 'Não foi possível excluir os lotes da modelo.' }, { status: 500 });
+    }
   }
   const { error } = await supabase.from('models').delete().eq('id', id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error('models DELETE:', error.message);
+    return NextResponse.json({ error: 'Não foi possível excluir a modelo.' }, { status: 500 });
+  }
   return NextResponse.json({ ok: true });
 }

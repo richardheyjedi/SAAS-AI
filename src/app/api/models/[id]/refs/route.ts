@@ -5,7 +5,7 @@ import { createServerSupabase } from '@/lib/supabase/server';
 import { NewRefsBodySchema } from './schema';
 
 // Submissões sequenciais à MuAPI dentro da request.
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 /**
  * Gera novas referências para um modelo existente, com ajustes opcionais.

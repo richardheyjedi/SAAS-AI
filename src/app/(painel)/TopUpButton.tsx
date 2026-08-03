@@ -64,8 +64,15 @@ export function TopUpButton() {
             <div className="lbl">
               <span className="sub">Valor (US$)</span>
               <div className="seg" role="group" aria-label="Valor da recarga">
-                {AMOUNTS.map((v) => (
-                  <button key={v} type="button" className={amount === v ? 'on' : ''} onClick={() => setAmount(v)}>
+                {AMOUNTS.map((v, i) => (
+                  <button
+                    key={v}
+                    type="button"
+                    className={amount === v ? 'on' : ''}
+                    onClick={() => setAmount(v)}
+                    // Foco inicial dentro do dialog: sem isso o Esc não chega ao overlay.
+                    autoFocus={i === 0}
+                  >
                     ${v}
                   </button>
                 ))}
@@ -83,8 +90,17 @@ export function TopUpButton() {
             {error && <div className="alert">{error}</div>}
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               {opened ? (
-                <button type="button" className="btn primary" onClick={() => { setOpen(false); router.refresh(); }}>
-                  Já paguei — atualizar saldo
+                <button
+                  type="button"
+                  className="btn primary"
+                  onClick={() => {
+                    // Religa a fila: vídeos pausados por saldo voltam a andar já.
+                    fetch('/api/queue/kick', { method: 'POST' }).catch(() => {});
+                    setOpen(false);
+                    router.refresh();
+                  }}
+                >
+                  Já paguei — atualizar saldo e retomar a fila
                 </button>
               ) : (
                 <button type="button" className="btn primary" disabled={loading} onClick={handleTopUp}>

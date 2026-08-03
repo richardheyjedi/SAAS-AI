@@ -2,11 +2,13 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createServerSupabase } from '@/lib/supabase/server';
 
+// Só http(s): z.url() sozinho aceita javascript:/data:, e essas URLs são
+// repassadas à MuAPI na composição.
 const BodySchema = z.object({
   title: z.string().min(2),
   description: z.string().default(''),
   priceBrl: z.number().positive().optional(),
-  imageUrls: z.array(z.string().url()).default([]),
+  imageUrls: z.array(z.string().url().regex(/^https?:\/\//i)).default([]),
 });
 
 export async function POST(req: Request) {

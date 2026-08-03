@@ -4,8 +4,8 @@ import { generateImage, muApiConfigFromEnv } from '@/lib/muapi';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { ModelGenerateBodySchema } from './schema';
 
-// Persona via Claude + submissões de referência à MuAPI numa request só.
-export const maxDuration = 60;
+// Persona via provedor de texto (poll de até 240s) + submissões de referência.
+export const maxDuration = 300;
 
 export async function POST(req: Request) {
   const supabase = await createServerSupabase();

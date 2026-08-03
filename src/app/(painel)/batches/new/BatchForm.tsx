@@ -75,7 +75,8 @@ export function BatchForm({ models, products }: { models: BatchModel[]; products
       });
       const body = await res.json();
       if (!res.ok) {
-        setError(typeof body?.error === 'string' ? body.error : 'Não foi possível criar o lote.');
+        const flat = body?.error;
+        setError(typeof flat === 'string' ? flat : flat?.formErrors?.[0] ?? 'Não foi possível criar o lote.');
         return;
       }
       router.push('/batches/' + body.batchId);

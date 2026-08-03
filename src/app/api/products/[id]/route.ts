@@ -33,16 +33,32 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
 
-  await supabase.from('models').update({ product_id: null }).eq('product_id', id);
+  // O desvínculo vem primeiro e ABORTA em erro: sem isso, uma falha aqui
+  // deixaria o delete final quebrar por FK com lotes/vídeos já destruídos.
+  const { error: unlinkErr } = await supabase
+    .from('models').update({ product_id: null }).eq('product_id', id);
+  if (unlinkErr) {
+    console.error('products DELETE unlink:', unlinkErr.message);
+    return NextResponse.json({ error: 'Não foi possível excluir o produto. Tente novamente.' }, { status: 500 });
+  }
   const { data: batches } = await supabase.from('video_batches').select('id').eq('product_id', id);
   const batchIds = (batches ?? []).map((b) => b.id);
   if (batchIds.length > 0) {
     const { error: jobsErr } = await supabase.from('video_jobs').delete().in('batch_id', batchIds);
-    if (jobsErr) return NextResponse.json({ error: jobsErr.message }, { status: 500 });
+    if (jobsErr) {
+      console.error('products DELETE jobs:', jobsErr.message);
+      return NextResponse.json({ error: 'Não foi possível excluir os vídeos do produto.' }, { status: 500 });
+    }
     const { error: batchErr } = await supabase.from('video_batches').delete().in('id', batchIds);
-    if (batchErr) return NextResponse.json({ error: batchErr.message }, { status: 500 });
+    if (batchErr) {
+      console.error('products DELETE batches:', batchErr.message);
+      return NextResponse.json({ error: 'Não foi possível excluir os lotes do produto.' }, { status: 500 });
+    }
   }
   const { error } = await supabase.from('products').delete().eq('id', id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error('products DELETE:', error.message);
+    return NextResponse.json({ error: 'Não foi possível excluir o produto.' }, { status: 500 });
+  }
   return NextResponse.json({ ok: true });
 }

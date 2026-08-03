@@ -3,6 +3,10 @@ import { kickQueue } from '@/lib/kick';
 import { parseWebhook } from '@/lib/muapi';
 import { createServiceSupabase } from '@/lib/supabase/server';
 
+// O kick (waitUntil) só vive até o maxDuration DESTA rota — sem isto, o
+// despacho em cadeia morre em ~10s e lotes grandes ficam pela metade.
+export const maxDuration = 300;
+
 type ServiceSupabase = ReturnType<typeof createServiceSupabase>;
 
 const MAX_RETRIES = 3;

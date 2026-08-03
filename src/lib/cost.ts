@@ -29,3 +29,7 @@ export function modelRefsCostUsd(imageEngineId: string, refCount: number): numbe
 export function usdToBrl(usd: number): number {
   return round2(usd * USD_TO_BRL);
 }
+
+export function formatUsd(v: number): string {
+  return 'US$ ' + v.toFixed(2).replace('.', ',');
+}

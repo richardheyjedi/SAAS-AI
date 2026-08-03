@@ -55,7 +55,12 @@ async function sweepFinishedBatches(supabase: ServiceSupabase) {
   for (const batch of batches ?? []) {
     const { data: jobs } = await supabase
       .from('video_jobs').select('status,retry_count').eq('batch_id', batch.id);
-    if (!jobs || jobs.length === 0) continue;
+    if (!jobs) continue;
+    // Lote aprovado que ficou sem nenhum job (vídeos excluídos) também fecha.
+    if (jobs.length === 0) {
+      await supabase.from('video_batches').update({ status: 'done' }).eq('id', batch.id);
+      continue;
+    }
     const pending = jobs.some((j) => j.status !== 'completed' && j.status !== 'failed');
     if (pending) continue;
     const retryable = jobs.some((j) => j.status === 'failed' && j.retry_count < MAX_RETRIES);
@@ -95,17 +100,33 @@ export async function GET(req: Request) {
   // Estado do dia medido pela data de DESPACHO (não de criação): é o despacho
   // que consome orçamento, e um lote criado ontem pode ser processado hoje.
   const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+  const todayIso = todayStart.toISOString();
   const { data: todayJobs } = await supabase
     .from('video_jobs')
     .select('status')
-    .gte('dispatched_at', todayStart.toISOString());
+    .gte('dispatched_at', todayIso);
   const dispatchedToday = todayJobs?.length ?? 0;
-  const state = { videosToday: dispatchedToday };
 
   // Circuit breaker: com muita falha no dia, para de queimar crédito na MuAPI.
   const failedToday = (todayJobs ?? []).filter((j) => j.status === 'failed').length;
   const paused = dispatchedToday >= BREAKER_MIN_SAMPLE
     && failedToday / dispatchedToday > BREAKER_FAILURE_RATE;
+
+  /**
+   * Teto diário contado no BANCO e apenas sobre ANIMAÇÕES (jobs que chegaram
+   * à fase de vídeo têm composed_image_url ao serem reivindicados). Recontar a
+   * cada claim mantém o limite válido mesmo com N invocações concorrentes
+   * disparadas pelos kicks — o snapshot em memória não segura o agregado.
+   * Composições não consomem o teto: um lote de 40 compõe e anima no mesmo dia.
+   */
+  async function animationsToday(): Promise<number> {
+    const { count } = await supabase
+      .from('video_jobs')
+      .select('id', { count: 'exact', head: true })
+      .gte('dispatched_at', todayIso)
+      .not('composed_image_url', 'is', null);
+    return count ?? 0;
+  }
 
   const { data: candidates, error: candidatesError } = await supabase
     .from('video_jobs')
@@ -120,6 +141,7 @@ export async function GET(req: Request) {
   }
 
   let dispatched = 0;
+  let stalledByCredit = false;
   for (const job of candidates ?? []) {
     // Um job problemático nunca pode derrubar o ciclo inteiro da fila.
     try {
@@ -146,7 +168,10 @@ export async function GET(req: Request) {
       };
       const perVideo = videoCostUsd(batch.video_engine, batch.duration_seconds)
         + imageCostUsd(batch.image_engine);
-      if (dispatchAllowance(state, limits) <= 0) break;
+      // O teto vale para ANIMAÇÕES e é recontado do banco a cada claim
+      // (seguro sob invocações concorrentes). Composição não consome teto.
+      if (action.kind === 'animate'
+        && dispatchAllowance({ videosToday: await animationsToday() }, limits) <= 0) break;
 
       const script = ScriptSchema.parse(job.script);
       const now = new Date().toISOString();
@@ -201,7 +226,6 @@ export async function GET(req: Request) {
         await supabase.from('video_jobs')
           .update({ muapi_request_id: requestId })
           .eq('id', job.id);
-        state.videosToday += 1;
       }
       dispatched += 1;
     } catch (err) {
@@ -212,6 +236,7 @@ export async function GET(req: Request) {
         await supabase.from('video_jobs')
           .update({ status: job.status, dispatched_at: null })
           .eq('id', job.id);
+        stalledByCredit = true;
         break;
       }
       await supabase.from('video_jobs')
@@ -227,6 +252,10 @@ export async function GET(req: Request) {
 
   if (paused) {
     return NextResponse.json({ dispatched: 0, paused: true, reason: 'Taxa de falha acima de 30% hoje' });
+  }
+  // Stall por saldo é observável na resposta (e o botão de recarga religa a fila).
+  if (stalledByCredit) {
+    return NextResponse.json({ dispatched, stalled: 'insufficient_credit' });
   }
   return NextResponse.json({ dispatched });
 }
