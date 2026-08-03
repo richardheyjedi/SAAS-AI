@@ -2,16 +2,10 @@
 
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createBrowserSupabase } from '@/lib/supabase/browser';
 import { imageCostUsd } from '@/lib/cost';
+import { UPLOAD_ACCEPT, uploadImage, validateImageFile } from '@/lib/upload';
 import { addModelReferences } from '../actions';
 
-const ACCEPTED_TYPES: Record<string, string> = {
-  'image/jpeg': 'jpg',
-  'image/png': 'png',
-  'image/webp': 'webp',
-};
-const MAX_FILE_MB = 8;
 const COUNT_OPTIONS = [1, 2, 3, 4, 5];
 
 export function ManageRefs({ modelId, engineId }: { modelId: string; engineId: string }) {
@@ -36,32 +30,27 @@ export function ManageRefs({ modelId, engineId }: { modelId: string; engineId: s
     setError(null);
     setNotice(null);
     const files = Array.from(list);
-    for (const f of files) {
-      if (!ACCEPTED_TYPES[f.type]) {
-        setError(`Formato não suportado: ${f.name} — use JPG, PNG ou WebP.`);
-        return;
-      }
-      if (f.size > MAX_FILE_MB * 1024 * 1024) {
-        setError(`${f.name} passa de ${MAX_FILE_MB} MB.`);
-        return;
-      }
+    try {
+      files.forEach(validateImageFile);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Arquivo inválido.');
+      return;
     }
     setUploading(true);
+    const uploaded: string[] = [];
     try {
-      const supabase = createBrowserSupabase();
-      const uploaded: string[] = [];
       for (const f of files) {
-        const path = `${crypto.randomUUID()}.${ACCEPTED_TYPES[f.type]}`;
-        const { error: upErr } = await supabase.storage.from('model-refs').upload(path, f);
-        if (upErr) throw upErr;
-        uploaded.push(supabase.storage.from('model-refs').getPublicUrl(path).data.publicUrl);
+        uploaded.push(await uploadImage('model-refs', f));
       }
-      await addModelReferences(modelId, uploaded);
-      setNotice(`${uploaded.length} foto(s) adicionada(s) ao character sheet.`);
-      router.refresh();
     } catch (err) {
       setError(`Falha no upload: ${err instanceof Error ? err.message : 'erro desconhecido'}. Tente de novo.`);
     } finally {
+      // Persiste o que subiu com sucesso mesmo se um arquivo posterior falhou.
+      if (uploaded.length > 0) {
+        await addModelReferences(modelId, uploaded);
+        setNotice(`${uploaded.length} foto(s) adicionada(s) ao character sheet.`);
+        router.refresh();
+      }
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
@@ -102,7 +91,7 @@ export function ManageRefs({ modelId, engineId }: { modelId: string; engineId: s
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/jpeg,image/png,image/webp"
+          accept={UPLOAD_ACCEPT}
           multiple
           style={{ display: 'none' }}
           onChange={(e) => handleFiles(e.target.files)}

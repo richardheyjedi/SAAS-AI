@@ -19,18 +19,7 @@ type ModelRow = {
   products: { title: string } | { title: string }[] | null;
 };
 
-const REGION_LABEL: Record<string, string> = {
-  br: '🇧🇷 Brasileira',
-  us: '🇺🇸 Americana',
-  us_latina: '🇺🇸 US · Latina',
-  custom: 'Personalizada',
-};
-
-const STATUS_INFO: Record<ModelRow['status'], { label: string; cls: string }> = {
-  generating_refs: { label: 'Gerando referências…', cls: 'p-cyan' },
-  pending_approval: { label: 'Revisar e aprovar', cls: 'p-warn' },
-  approved: { label: '✓ Pronta para vídeos', cls: 'p-ok' },
-};
+import { MODEL_STATUS_INFO, REGION_LABEL, one } from '@/lib/labels';
 
 export default async function ModelDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -53,7 +42,7 @@ export default async function ModelDetailPage({ params }: { params: Promise<{ id
 
   const persona = PersonaSchema.safeParse(model.persona);
   const refs = model.reference_image_urls ?? [];
-  const status = STATUS_INFO[model.status] ?? { label: model.status, cls: 'p-mut' };
+  const status = MODEL_STATUS_INFO[model.status] ?? { label: model.status, cls: 'p-mut' };
   let engineLabel = model.image_engine;
   try {
     engineLabel = imageEngine(model.image_engine).label;
@@ -72,7 +61,7 @@ export default async function ModelDetailPage({ params }: { params: Promise<{ id
           <div className="sub">
             {REGION_LABEL[model.region] ?? model.region} · motor {engineLabel} · criada em {createdAt}
             {(() => {
-              const p = Array.isArray(model.products) ? model.products[0] : model.products;
+              const p = one(model.products);
               return p ? <> · 🛍 produto: <b>{p.title}</b></> : null;
             })()}
           </div>

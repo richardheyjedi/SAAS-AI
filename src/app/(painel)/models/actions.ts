@@ -8,8 +8,15 @@ function revalidateModel(modelId: string) {
   revalidatePath(`/models/${modelId}`);
 }
 
+/** Defesa em profundidade: mesmo padrão das rotas /api — não depender só de RLS/middleware. */
+async function authed(supabase: Awaited<ReturnType<typeof createServerSupabase>>): Promise<boolean> {
+  const { data: { user } } = await supabase.auth.getUser();
+  return user != null;
+}
+
 export async function approveModel(modelId: string) {
   const supabase = await createServerSupabase();
+  if (!(await authed(supabase))) return;
   await supabase.from('models').update({ status: 'approved' }).eq('id', modelId);
   revalidateModel(modelId);
 }
@@ -17,6 +24,7 @@ export async function approveModel(modelId: string) {
 /** Remove uma referência do modelo. A última referência nunca é removida (a composição depende dela). */
 export async function removeModelReference(modelId: string, url: string) {
   const supabase = await createServerSupabase();
+  if (!(await authed(supabase))) return;
   const { data: model } = await supabase
     .from('models').select('reference_image_urls').eq('id', modelId).single();
   const refs: string[] = model?.reference_image_urls ?? [];
@@ -29,6 +37,7 @@ export async function removeModelReference(modelId: string, url: string) {
 /** Move a referência para a posição 0 — ela vira a base usada na composição dos vídeos. */
 export async function promoteModelReference(modelId: string, url: string) {
   const supabase = await createServerSupabase();
+  if (!(await authed(supabase))) return;
   const { data: model } = await supabase
     .from('models').select('reference_image_urls').eq('id', modelId).single();
   const refs: string[] = model?.reference_image_urls ?? [];
@@ -40,9 +49,10 @@ export async function promoteModelReference(modelId: string, url: string) {
 
 /** Anexa URLs de fotos já enviadas ao Storage como novas referências (ao final, sem duplicar). */
 export async function addModelReferences(modelId: string, urls: string[]) {
-  const clean = urls.filter((u) => typeof u === 'string' && /^https?:\/\//.test(u)).slice(0, 10);
+  const clean = urls.filter((u) => typeof u === 'string' && /^https?:\/\//i.test(u)).slice(0, 10);
   if (clean.length === 0) return;
   const supabase = await createServerSupabase();
+  if (!(await authed(supabase))) return;
   const { data: model } = await supabase
     .from('models').select('reference_image_urls').eq('id', modelId).single();
   if (!model) return;

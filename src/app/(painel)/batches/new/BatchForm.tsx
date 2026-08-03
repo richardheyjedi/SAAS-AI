@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { batchCostUsd, imageCostUsd, usdToBrl, videoCostUsd } from '@/lib/cost';
+import { batchCostUsd, formatUsd, imageCostUsd, usdToBrl, videoCostUsd } from '@/lib/cost';
 import {
   DEFAULT_IMAGE_ENGINE, DEFAULT_VIDEO_ENGINE, IMAGE_ENGINES, VIDEO_ENGINES,
   VIDEO_ASPECT_RATIOS, VIDEO_DURATION_MAX, VIDEO_DURATION_MIN,
@@ -28,9 +28,6 @@ export type BatchProduct = {
 
 const AV_CLASSES = ['av-1', 'av-2', 'av-3'];
 
-function formatUsd(v: number): string {
-  return 'US$ ' + v.toFixed(2).replace('.', ',');
-}
 function formatBrl(v: number): string {
   return 'R$ ' + v.toFixed(2).replace('.', ',');
 }

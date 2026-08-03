@@ -31,14 +31,8 @@ const BATCH_STATUS_LABEL: Record<string, { label: string; cls: string }> = {
   done: { label: 'Concluído', cls: 'p-ok' },
 };
 
-function one<T>(rel: T | T[] | null): T | null {
-  if (!rel) return null;
-  return Array.isArray(rel) ? (rel[0] ?? null) : rel;
-}
-
-function formatUsd(v: number): string {
-  return 'US$ ' + v.toFixed(2).replace('.', ',');
-}
+import { one } from '@/lib/labels';
+import { formatUsd } from '@/lib/cost';
 
 function todayStartIso(): string {
   const now = new Date();
@@ -70,7 +64,11 @@ export default async function DashboardPage() {
     const since = todayStartIso();
 
     const [todayRes, weekRes, queueRes, batchesRes] = await Promise.all([
-      supabase.from('video_jobs').select('id,status,cost_usd,created_at').gte('created_at', since),
+      // Mesma régua do cron: dia contado pela DATA DE DESPACHO, e "vídeo do
+      // dia" é o que chegou à animação (tem composed_image_url no claim).
+      supabase.from('video_jobs')
+        .select('id,status,cost_usd,created_at,composed_image_url')
+        .gte('dispatched_at', since),
       supabase.from('video_jobs').select('id,status,cost_usd,created_at').gte('created_at', weekAgoIso()),
       supabase.from('video_jobs').select('id,status,cost_usd,created_at').in('status', ['queued', 'ready', 'composing']),
       supabase
@@ -90,7 +88,9 @@ export default async function DashboardPage() {
     recentBatches = [];
   }
 
-  const videosToday = videoJobsToday.filter((j) => j.status === 'generating' || j.status === 'completed').length;
+  const videosToday = videoJobsToday.filter(
+    (j) => (j as { composed_image_url?: string | null }).composed_image_url != null,
+  ).length;
   const naFila = queuedJobs.length ?? 0;
   const gastoHoje = videoJobsToday.reduce((sum, j) => sum + (j.cost_usd ?? 0), 0);
   const failedWeek = videoJobsWeek.filter((j) => j.status === 'failed').length;

@@ -24,35 +24,9 @@ type JobRow = {
   video_batches: BatchInfo | BatchInfo[] | null;
 };
 
-function one<T>(rel: T | T[] | null): T | null {
-  if (!rel) return null;
-  return Array.isArray(rel) ? (rel[0] ?? null) : rel;
-}
-
-function formatUsd(v: number): string {
-  return 'US$ ' + v.toFixed(2).replace('.', ',');
-}
-
-function formatDuration(ms: number): string {
-  const s = Math.round(ms / 1000);
-  if (s < 60) return `${s}s`;
-  const min = Math.floor(s / 60);
-  const rest = s % 60;
-  if (min < 60) return rest > 0 ? `${min}min ${rest}s` : `${min}min`;
-  const h = Math.floor(min / 60);
-  return `${h}h ${min % 60}min`;
-}
-
-/** Média (despacho→entrega) e janela total (1º despacho→última entrega) dos vídeos prontos do grupo. */
-function groupTimings(jobs: JobRow[]): { avgMs: number; totalMs: number; sample: number } | null {
-  const done = jobs.filter((j) => j.status === 'completed' && j.dispatched_at && j.completed_at);
-  if (done.length === 0) return null;
-  const durations = done.map((j) => new Date(j.completed_at!).getTime() - new Date(j.dispatched_at!).getTime());
-  const avgMs = durations.reduce((a, b) => a + b, 0) / durations.length;
-  const firstDispatch = Math.min(...done.map((j) => new Date(j.dispatched_at!).getTime()));
-  const lastDone = Math.max(...done.map((j) => new Date(j.completed_at!).getTime()));
-  return { avgMs, totalMs: lastDone - firstDispatch, sample: done.length };
-}
+import { one } from '@/lib/labels';
+import { formatUsd } from '@/lib/cost';
+import { formatDuration, groupTimings } from '@/lib/timings';
 
 export default async function VideosPage() {
   let jobs: JobRow[] = [];
@@ -123,8 +97,8 @@ export default async function VideosPage() {
           <i></i>Falhou · {failedCount}
         </span>
         {overall && (
-          <span className="pill p-mut" title="Média do despacho à entrega, considerando todos os vídeos prontos">
-            ⏱ média geral: {formatDuration(overall.avgMs)}/vídeo
+          <span className="pill p-mut" title="Média da etapa de animação (não inclui a composição da imagem)">
+            ⏱ animação média: {formatDuration(overall.avgMs)}/vídeo
           </span>
         )}
       </div>
@@ -150,11 +124,11 @@ export default async function VideosPage() {
                 <span className="pill p-mut">{group.jobs.length} vídeos · {doneInGroup} prontos</span>
                 {timings && (
                   <>
-                    <span className="pill p-mut" title={`Média do despacho à entrega (${timings.sample} vídeo(s) pronto(s))`}>
-                      ⏱ {formatDuration(timings.avgMs)}/vídeo
+                    <span className="pill p-mut" title={`Média da etapa de animação — não inclui a composição (${timings.sample} vídeo(s) pronto(s))`}>
+                      ⏱ animação: {formatDuration(timings.avgMs)}/vídeo
                     </span>
-                    <span className="pill p-mut" title="Do 1º despacho do lote até a última entrega">
-                      🏁 total do lote: {formatDuration(timings.totalMs)}
+                    <span className="pill p-mut" title="Da 1ª animação iniciada à última entrega do grupo">
+                      🏁 janela de entrega: {formatDuration(timings.totalMs)}
                     </span>
                   </>
                 )}

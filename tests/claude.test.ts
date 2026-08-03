@@ -47,6 +47,14 @@ describe('roteiros com fala dedicada', () => {
     expect(out).toContain('"gente, olha isso!"');
     expect(withSpokenLine('m', 'hey!', 'us')).toContain('American English');
   });
+  it('não duplica fala já presente e converte aspas duplas em simples', async () => {
+    const { withSpokenLine } = await import('@/prompts/video-scripts');
+    const legacy = 'she smiles, then says in Brazilian Portuguese: "gente, chegou!"';
+    expect(withSpokenLine(legacy, 'outra frase', 'br')).toBe(legacy);
+    const same = 'she lifts the dress while saying gente, olha isso';
+    expect(withSpokenLine(same, 'gente, olha isso', 'br')).toBe(same);
+    expect(withSpokenLine('she smiles at camera', 'diz "corre" agora', 'br')).toContain(`"diz 'corre' agora"`);
+  });
 });
 
 describe('generateScripts', () => {

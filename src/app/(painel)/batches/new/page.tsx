@@ -3,12 +3,7 @@ import { createServerSupabase } from '@/lib/supabase/server';
 import { PersonaSchema } from '@/types';
 import { BatchForm, type BatchModel, type BatchProduct } from './BatchForm';
 
-const REGION_LABEL: Record<string, string> = {
-  br: '🇧🇷 Brasileira',
-  us: '🇺🇸 Americana',
-  us_latina: '🇺🇸 US · Latina',
-  custom: 'Personalizada',
-};
+import { REGION_LABEL } from '@/lib/labels';
 
 export default async function NewBatchPage() {
   let models: BatchModel[] = [];

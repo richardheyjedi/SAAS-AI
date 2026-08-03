@@ -19,9 +19,7 @@ type JobRow = {
   status: JobStatus;
 };
 
-function formatUsd(v: number): string {
-  return 'US$ ' + v.toFixed(2).replace('.', ',');
-}
+import { formatUsd } from '@/lib/cost';
 
 export default async function BatchReviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

@@ -1,8 +1,8 @@
-﻿# UGCX (ex-AutoReelsAI)
+# UGCX
 
 ## Visão geral
 
-O AutoReelsAI cria modelos virtuais (influenciadoras) por região ou prompt livre, associa produtos (a partir de fotos públicas) e gera lotes de vídeos de divulgação sob demanda, usando a MuAPI para imagem/vídeo e Claude para os roteiros de cada cena. O motor de imagem é selecionável entre **GPT Image 2** e **Nano Banana 2**, e o de vídeo entre os 9 tiers image-to-video do **Seedance 2.0** (do Mini ao VIP 4K) — o custo estimado de cada geração é calculado por uma tabela local de preços e exibido antes de confirmar. Os vídeos prontos ficam disponíveis para download manual na tela **Vídeos**, para você postar no TikTok Shop.
+A UGCX cria modelos virtuais (influenciadoras) por região ou prompt livre, associa produtos (a partir de fotos públicas) e gera lotes de vídeos de divulgação sob demanda, usando a MuAPI para imagem/vídeo e Claude para os roteiros de cada cena. O motor de imagem é selecionável entre **GPT Image 2** e **Nano Banana 2**, e o de vídeo entre os 9 tiers image-to-video do **Seedance 2.0** (do Mini ao VIP 4K) — o custo estimado de cada geração é calculado por uma tabela local de preços e exibido antes de confirmar. Os vídeos prontos ficam disponíveis para download manual na tela **Vídeos**, para você postar no TikTok Shop.
 
 ## Pré-requisitos
 

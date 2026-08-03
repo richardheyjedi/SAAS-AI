@@ -15,9 +15,19 @@ const SPEECH_LANGUAGE: Record<Region, string> = {
   custom: 'Brazilian Portuguese',
 };
 
-/** Acopla a fala ao prompt de movimento no formato que gera voz sincronizada no Seedance. */
+/**
+ * Acopla a fala ao prompt de movimento no formato que gera voz sincronizada
+ * no Seedance. Não duplica: se o movimento já contém uma fala (lotes antigos
+ * com a frase embutida, ou LLM que desobedeceu a instrução), fica como está.
+ * Aspas duplas na fala viram simples para não quebrar o formato do prompt.
+ */
 export function withSpokenLine(motionPrompt: string, speech: string, region: Region): string {
-  return `${motionPrompt}. The creator looks directly at the camera and says in ${SPEECH_LANGUAGE[region]}: "${speech.trim()}"`;
+  const line = speech.trim().replace(/"/g, "'");
+  if (!line) return motionPrompt;
+  const alreadySpoken = /says in|diz em|fala(ndo)? em/i.test(motionPrompt)
+    || motionPrompt.toLowerCase().includes(line.toLowerCase());
+  if (alreadySpoken) return motionPrompt;
+  return `${motionPrompt}. The creator looks directly at the camera and says in ${SPEECH_LANGUAGE[region]}: "${line}"`;
 }
 
 export function scriptsUserPrompt(input: {

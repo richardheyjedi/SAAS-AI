@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Script } from '@/types';
+import { Modal } from '@/app/components/Modal';
 
 export function EditScript({ jobId, script }: { jobId: string; script: Script }) {
   const router = useRouter();
@@ -54,32 +55,8 @@ export function EditScript({ jobId, script }: { jobId: string; script: Script })
         ✎ Editar roteiro
       </button>
       {open && (
-        <div
-          className="overlay"
-          role="dialog"
-          aria-modal="true"
-          aria-label={`Editar roteiro ${script.title}`}
-          onClick={(e) => {
-            if (e.target === e.currentTarget && !loading) setOpen(false);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape' && !loading) setOpen(false);
-          }}
-        >
-          <div className="modal">
-            <div className="modal-head">
-              <b>Editar roteiro</b>
-              <button
-                type="button"
-                className="modal-close"
-                aria-label="Fechar"
-                onClick={() => setOpen(false)}
-                disabled={loading}
-              >
-                ×
-              </button>
-            </div>
-            <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 14 }}>
+        <Modal title="Editar roteiro" onClose={() => setOpen(false)} busy={loading}>
+          <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 14 }}>
               <label className="lbl">
                 <span className="sub">Título (mín. 3 caracteres)</span>
                 <input className="field" value={title} onChange={(e) => setTitle(e.target.value)} required autoFocus />
@@ -117,8 +94,7 @@ export function EditScript({ jobId, script }: { jobId: string; script: Script })
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+        </Modal>
       )}
     </>
   );

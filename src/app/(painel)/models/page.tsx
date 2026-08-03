@@ -15,20 +15,7 @@ type ModelRow = {
   created_at: string;
 };
 
-const REGION_LABEL: Record<string, string> = {
-  br: '🇧🇷 Brasileira',
-  us: '🇺🇸 Americana',
-  us_latina: '🇺🇸 US · Latina',
-  custom: 'Personalizada',
-};
-
-// O status "approved" é o indicativo de disponibilidade: só modelo
-// aprovado aparece na criação de lote e pode gerar vídeos.
-const STATUS_INFO: Record<ModelRow['status'], { label: string; cls: string }> = {
-  generating_refs: { label: 'Gerando referências…', cls: 'p-cyan' },
-  pending_approval: { label: 'Revisar e aprovar', cls: 'p-warn' },
-  approved: { label: '✓ Pronta para vídeos', cls: 'p-ok' },
-};
+import { MODEL_STATUS_INFO, REGION_LABEL } from '@/lib/labels';
 
 export default async function ModelsPage() {
   let models: ModelRow[] = [];
@@ -70,7 +57,7 @@ export default async function ModelsPage() {
           const persona = PersonaSchema.safeParse(m.persona);
           const niche = persona.success ? persona.data.niche : null;
           const refCount = m.reference_image_urls?.length ?? 0;
-          const status = STATUS_INFO[m.status] ?? { label: m.status, cls: 'p-mut' };
+          const status = MODEL_STATUS_INFO[m.status] ?? { label: m.status, cls: 'p-mut' };
           return (
             <div className="card" key={m.id}>
               <Link href={`/models/${m.id}`} className="card-link" title="Ver character sheet e detalhes">
