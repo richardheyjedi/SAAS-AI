@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Modal } from '@/app/components/Modal';
 
@@ -102,9 +101,9 @@ export function DuplicateModel({
               <span className="sub">
                 Cadastre um produto primeiro — a duplicação existe para vender outro produto com o mesmo rosto.
               </span>
-              <Link href="/products" className="btn" autoFocus>
+              <button type="button" className="btn" autoFocus onClick={() => router.push('/products')}>
                 Ir para Produtos →
-              </Link>
+              </button>
             </div>
           ) : (
             <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 14 }}>
