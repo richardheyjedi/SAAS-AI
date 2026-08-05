@@ -11,6 +11,9 @@ on:
 
 jobs:
   dispatch:
+    # O cron mora no SAAS-AI (público, Actions grátis, secret CRON_SECRET lá).
+    # O guard impede execução duplicada no espelho creatorautoai (privado, minutos pagos).
+    if: github.repository == 'richardheyjedi/SAAS-AI'
     runs-on: ubuntu-latest
     steps:
       - name: Chamar o cron da fila na Vercel
