@@ -3,6 +3,7 @@ import { ModelGenerateBodySchema } from '@/app/api/models/generate/schema';
 import { BatchBodySchema } from '@/app/api/batches/schema';
 import { NewRefsBodySchema } from '@/app/api/models/[id]/refs/schema';
 import { ProductUpdateSchema } from '@/app/api/products/[id]/schema';
+import { DuplicateBodySchema } from '@/app/api/models/[id]/duplicate/schema';
 
 const uuid = '4c1f1e07-4a3e-4b6e-9d1a-3a2b1c0d9e8f';
 
@@ -104,5 +105,21 @@ describe('NewRefsBodySchema', () => {
     expect(NewRefsBodySchema.safeParse({ count: 0 }).success).toBe(false);
     expect(NewRefsBodySchema.safeParse({ count: 6 }).success).toBe(false);
     expect(NewRefsBodySchema.safeParse({ adjustPrompt: 'x'.repeat(1001) }).success).toBe(false);
+  });
+});
+
+describe('DuplicateBodySchema', () => {
+  it('exige productId uuid', () => {
+    expect(DuplicateBodySchema.safeParse({}).success).toBe(false);
+    expect(DuplicateBodySchema.safeParse({ productId: 'nao-uuid' }).success).toBe(false);
+    expect(DuplicateBodySchema.parse({ productId: uuid }).productId).toBe(uuid);
+  });
+  it('name é opcional, sofre trim e vazio vira undefined (default aplicado na rota)', () => {
+    expect(DuplicateBodySchema.parse({ productId: uuid }).name).toBeUndefined();
+    expect(DuplicateBodySchema.parse({ productId: uuid, name: '  Larissa (2)  ' }).name).toBe('Larissa (2)');
+    expect(DuplicateBodySchema.parse({ productId: uuid, name: '   ' }).name).toBeUndefined();
+  });
+  it('rejeita name acima de 120 caracteres', () => {
+    expect(DuplicateBodySchema.safeParse({ productId: uuid, name: 'x'.repeat(121) }).success).toBe(false);
   });
 });
