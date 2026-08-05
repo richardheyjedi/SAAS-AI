@@ -6,6 +6,7 @@ import { imageEngine } from '@/lib/engines';
 import { approveModel, promoteModelReference, removeModelReference } from '../actions';
 import { ManageRefs } from './ManageRefs';
 import { DeleteButton } from '@/app/components/DeleteButton';
+import { DuplicateModel, type DuplicateProduct } from '../DuplicateModel';
 
 type ModelRow = {
   id: string;
@@ -15,6 +16,7 @@ type ModelRow = {
   reference_image_urls: string[] | null;
   status: 'generating_refs' | 'pending_approval' | 'approved';
   image_engine: string;
+  product_id: string | null;
   created_at: string;
   products: { title: string } | { title: string }[] | null;
 };
@@ -25,16 +27,19 @@ export default async function ModelDetailPage({ params }: { params: Promise<{ id
   const { id } = await params;
   let model: ModelRow | null = null;
   let pendingRefs = 0;
+  let products: DuplicateProduct[] = [];
   try {
     const supabase = await createServerSupabase();
-    const [{ data }, { count }] = await Promise.all([
+    const [{ data }, { count }, productsRes] = await Promise.all([
       supabase.from('models').select('*,products(title)').eq('id', id).single(),
       supabase.from('image_jobs')
         .select('id', { count: 'exact', head: true })
         .eq('model_id', id).eq('status', 'generating'),
+      supabase.from('products').select('id,title').order('created_at', { ascending: false }),
     ]);
     model = data ?? null;
     pendingRefs = count ?? 0;
+    products = productsRes.data ?? [];
   } catch {
     model = null;
   }
@@ -82,6 +87,16 @@ export default async function ModelDetailPage({ params }: { params: Promise<{ id
             <Link href="/batches/new" className="btn primary">
               Gerar vídeos com esta modelo →
             </Link>
+          )}
+          {model.status === 'approved' && (
+            <DuplicateModel
+              modelId={model.id}
+              modelName={model.name}
+              currentProductId={model.product_id ?? null}
+              products={products}
+              variant="button"
+              thumbUrl={refs[0] ?? null}
+            />
           )}
           <DeleteButton
             url={`/api/models/${model.id}`}

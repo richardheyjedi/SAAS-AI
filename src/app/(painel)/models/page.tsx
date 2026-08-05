@@ -4,6 +4,7 @@ import { PersonaSchema } from '@/types';
 import { ModelForm } from './ModelForm';
 import { approveModel } from './actions';
 import { CharacterSheetGuide } from './CharacterSheetGuide';
+import { DuplicateModel } from './DuplicateModel';
 
 type ModelRow = {
   id: string;
@@ -12,6 +13,7 @@ type ModelRow = {
   persona: unknown;
   reference_image_urls: string[] | null;
   status: 'generating_refs' | 'pending_approval' | 'approved';
+  product_id: string | null;
   created_at: string;
 };
 
@@ -89,7 +91,19 @@ export default async function ModelsPage() {
                 </div>
               </Link>
               <div className="card-foot">
-                <span>{refCount} refs</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {refCount} refs
+                  {m.status === 'approved' && (
+                    <DuplicateModel
+                      modelId={m.id}
+                      modelName={m.name}
+                      currentProductId={m.product_id ?? null}
+                      products={products}
+                      variant="cardAction"
+                      thumbUrl={m.reference_image_urls?.[0] ?? null}
+                    />
+                  )}
+                </span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span className={'pill ' + status.cls}>
                     <i></i>
