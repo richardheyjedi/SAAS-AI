@@ -55,7 +55,7 @@ Ordem dos elementos, de cima para baixo:
 
 1. **Contexto visual** — linha `display:flex; align-items:center; gap:10`: thumbnail da referência base (36×36, `border-radius:8px`, `object-fit:cover`) + coluna com `<b>{modelName}</b>` e `<span className="sub" style={{fontSize:11.5}}>mesmo rosto, mesmas referências</span>` + `<span className="pill p-ok">custo US$ 0,00</span>` alinhado à direita (`margin-left:auto`). Dá confiança imediata de qual rosto está sendo duplicado e que é grátis.
 2. **Nome da cópia** — `.lbl` + `.field`, pré-preenchido `"<nome> (2)"`, `autoFocus` (obrigatório para o Esc do `Modal` funcionar). Sem contador, sem validação além de trim.
-3. **Novo produto** — `.lbl` + `select.field`. Todos os produtos; o atual da original ganha sufixo `" — atual"` no rótulo. Pré-seleção: primeiro produto ≠ atual (se só existe o atual, ele mesmo).
+3. **Novo produto** — `.lbl` + `select.field`. Todos os produtos; o atual da original ganha sufixo `" — atual"` no rótulo. Pré-seleção: primeiro produto ≠ atual (se só existe o atual, ele mesmo). Se a original não tem produto vinculado (`product_id` null, persona genérica): nenhum sufixo, pré-seleciona o primeiro produto da lista — o select continua obrigatório, a duplicação sempre associa um produto.
 4. **Alerta de erro** — `.alert`, só quando houver erro (mesma posição dos outros formulários: logo acima dos botões).
 5. **Botões** — `display:flex; gap:8; justify-content:flex-end`: `Cancelar` (`.btn`, disabled durante loading) e `⧉ Duplicar` (`.btn primary`, disabled durante loading, texto vira `"Duplicando…"`).
 
