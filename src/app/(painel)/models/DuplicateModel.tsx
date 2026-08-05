@@ -102,7 +102,7 @@ export function DuplicateModel({
               <span className="sub">
                 Cadastre um produto primeiro — a duplicação existe para vender outro produto com o mesmo rosto.
               </span>
-              <Link href="/products" className="btn">
+              <Link href="/products" className="btn" autoFocus>
                 Ir para Produtos →
               </Link>
             </div>
